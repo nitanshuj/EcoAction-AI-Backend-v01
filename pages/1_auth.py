@@ -327,8 +327,8 @@ with tab2:
         col3, col4 = st.columns(2)
         with col3:
             age = st.number_input("Age", min_value=13, max_value=120, value=25)
-        with col4:            
-            country = st.text_input("Country", placeholder="e.g., United States")
+        # with col4:            
+        #     country = st.text_input("Country", placeholder="e.g., United States")
 
         # Account Details
         st.markdown('<div class="section-header">Account Details</div>', unsafe_allow_html=True)
@@ -365,7 +365,7 @@ with tab2:
                         first_name=first_name.strip(),
                         last_name=last_name.strip(),
                         age=age,
-                        country=country
+                       #  country=country
                     )
                     if success:
                         st.success("Account created successfully!")

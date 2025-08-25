@@ -38,7 +38,7 @@ def login(email: str, password: str) -> tuple[bool, str]:
         else:
             return False, f"An error occurred during login: {error_msg}"
 
-def sign_up(email: str, password: str, first_name: str, last_name: str, age: int, country: str) -> tuple[bool, str]:
+def sign_up(email: str, password: str, first_name: str, last_name: str, age: int) -> tuple[bool, str]:
     """
     Create a new user account with profile information.
     
@@ -48,7 +48,7 @@ def sign_up(email: str, password: str, first_name: str, last_name: str, age: int
         first_name (str): User's first name
         last_name (str): User's last name
         age (int): User's age
-        country (str): User's country
+        country (str): User's country (Removed)
         
     Returns:
         tuple[bool, str]: (success status, message)
@@ -70,7 +70,7 @@ def sign_up(email: str, password: str, first_name: str, last_name: str, age: int
                 profile_response = supabase.table("users").update({
                     "first_name": first_name,
                     "last_name": last_name,
-                    "country": country,
+                    # "country": country,
                     "onboarding_status": False
                 }).eq("id", response.user.id).execute()
                 

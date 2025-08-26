@@ -202,3 +202,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+
+# Add a folder to ignore name it experimentation
+experimentation/

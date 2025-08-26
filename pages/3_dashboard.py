@@ -226,88 +226,205 @@ if user:
         calculation_data = carbon_data.get('calculation_data', {})
         benchmark_data = carbon_data.get('benchmark_data', {})
         
+        # Carbon Footprint Analysis Header
+        st.markdown("---")
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #4CAF50 0%, #45A049 100%); 
+                    border-radius: 15px; padding: 2rem; margin: 2rem 0; text-align: center; 
+                    color: white; box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);">
+            <h2 style="color: white; margin-bottom: 0.5rem;">🌍 Your Carbon Footprint Analysis</h2>
+            <p style="color: #E8F5E8; font-size: 1.1rem; margin: 0;">
+                Powered by AI - Personalized insights based on your lifestyle
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         # Main metrics section from real data
-        st.subheader("📊 Your Carbon Footprint Analysis")
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            total_footprint = calculation_data.get('total_carbon_footprint_kg', 0)
-            st.metric("Annual Footprint", f"{total_footprint:.1f} kg CO₂")
+            total_footprint_kg = calculation_data.get('total_carbon_footprint_kg', 0)
+            total_footprint_tonnes = calculation_data.get('total_carbon_footprint_tonnes', total_footprint_kg/1000)
+            st.metric(
+                "Annual Carbon Footprint", 
+                f"{total_footprint_tonnes:.2f} tonnes CO₂",
+                help="Your estimated annual carbon emissions"
+            )
         
         with col2:
-            sustainability_score = benchmark_data.get('sustainability_score', 0)
-            st.metric("Sustainability Score", f"{sustainability_score}/10")
+            sustainability_score = calculation_data.get('sustainability_score', benchmark_data.get('sustainability_score', 0))
+            score_category = calculation_data.get('score_category', benchmark_data.get('score_category', 'Unknown'))
+            st.metric(
+                "Sustainability Score", 
+                f"{sustainability_score}/10",
+                delta=score_category,
+                help="Your overall sustainability rating"
+            )
         
         with col3:
-            regional_comparison = benchmark_data.get('regional_comparison', {})
+            regional_comparison = calculation_data.get('regional_comparison', benchmark_data.get('regional_comparison', {}))
             comparison_status = regional_comparison.get('comparison_status', 'unknown')
-            st.metric("vs. Regional Average", comparison_status.title())
+            percentage_diff = regional_comparison.get('percentage_difference', 0)
+            delta_text = f"{percentage_diff:+.1f}%" if percentage_diff != 0 else "0%"
+            st.metric(
+                "vs. Regional Average", 
+                comparison_status.title(),
+                delta=delta_text,
+                help="How you compare to others in your region"
+            )
         
         with col4:
             top_categories = calculation_data.get('top_impact_categories', [])
             top_category = top_categories[0] if top_categories else 'N/A'
-            st.metric("Top Impact Area", top_category.replace('_', ' ').title())
+            st.metric(
+                "Top Impact Area", 
+                top_category,
+                help="Your highest emission category"
+            )
         
-        # Detailed analysis in two columns
-        col1, col2 = st.columns(2)
+        # Category Breakdown Chart
+        st.subheader("📊 Emissions by Category")
+        category_breakdown = calculation_data.get('category_breakdown', {})
         
-        with col1:
-            # Carbon breakdown
-            st.subheader("🏠 Carbon Breakdown")
-            category_breakdown = calculation_data.get('category_breakdown', {})
+        if category_breakdown:
+            # Create DataFrame for visualization
+            categories = []
+            emissions = []
             
-            for category, amount in category_breakdown.items():
-                category_name = category.replace('_kg', '').replace('_', ' ').title()
-                percentage = (amount / total_footprint * 100) if total_footprint > 0 else 0
-                st.progress(percentage / 100, text=f"{category_name}: {amount:.1f} kg CO₂ ({percentage:.1f}%)")
+            category_mapping = {
+                'transportation_kg': 'Transportation',
+                'diet_kg': 'Diet',
+                'home_energy_kg': 'Home Energy',
+                'shopping_kg': 'Shopping',
+                'digital_footprint_kg': 'Digital Footprint',
+                'other_kg': 'Other'
+            }
             
-            # Priority areas
-            st.subheader("🎯 Priority Areas")
-            priority_areas = calculation_data.get('top_impact_categories', [])
+            for key, value in category_breakdown.items():
+                if value > 0:  # Only show non-zero categories
+                    display_name = category_mapping.get(key, key.replace('_kg', '').replace('_', ' ').title())
+                    categories.append(display_name)
+                    emissions.append(value)
             
-            for i, area in enumerate(priority_areas[:3], 1):
-                st.markdown(f"""
-                <div style="background: white; border-left: 4px solid #f56565; border-radius: 8px; 
-                           padding: 1rem; margin: 0.5rem 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                    <div style="font-weight: 600; color: #2d3748;">
-                        {i}. {area.replace('_', ' ').title()}
-                    </div>
-                    <div style="color: #718096; font-size: 0.9rem; margin-top: 0.5rem;">
-                        High impact reduction opportunity
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+            if categories and emissions:
+                df = pd.DataFrame({
+                    'Category': categories,
+                    'Annual Emissions (kg CO₂)': emissions
+                })
+                
+                # Display as bar chart
+                st.bar_chart(df.set_index('Category'))
+                
+                # Display as table with percentages
+                df['Percentage'] = (df['Annual Emissions (kg CO₂)'] / df['Annual Emissions (kg CO₂)'].sum() * 100).round(1)
+                df['Percentage'] = df['Percentage'].astype(str) + '%'
+                st.dataframe(df, use_container_width=True, hide_index=True)
         
-        with col2:
-            # Benchmarking results
-            st.subheader("📊 How You Compare")
-            
-            if regional_comparison:
-                user_location = regional_comparison.get('user_location', 'Unknown')
-                local_average = regional_comparison.get('local_average_kg', 0)
-                comparison_status = regional_comparison.get('comparison_status', 'unknown')
+        # Key Lever Validations
+        st.subheader("🔧 Key Reduction Opportunities")
+        key_lever_validations = calculation_data.get('key_lever_validations', [])
+        
+        if key_lever_validations:
+            for i, validation in enumerate(key_lever_validations, 1):
+                lever = validation.get('lever', '')
+                validated = validation.get('validated', False)
+                potential_reduction = validation.get('potential_reduction_kg', 0)
+                validation_reason = validation.get('validation_reason', '')
+                impact_category = validation.get('impact_category', '')
+                
+                status_icon = "✅" if validated else "❌"
+                status_color = "#4CAF50" if validated else "#F44336"
                 
                 st.markdown(f"""
-                <div style="background: white; border-radius: 10px; padding: 1.5rem; 
-                           margin: 0.5rem 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                    <h4>🌍 Regional Comparison</h4>
-                    <p><strong>Location:</strong> {user_location}</p>
-                    <p><strong>Local Average:</strong> {local_average:.1f} kg CO₂</p>
-                    <p><strong>You are:</strong> {comparison_status} average</p>
+                <div style="background: white; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; 
+                            border-left: 5px solid {status_color}; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h4 style="color: #2C3E50; margin-bottom: 0.5rem;">
+                        {status_icon} {lever}
+                    </h4>
+                    <div style="color: #666; margin-bottom: 0.5rem;">
+                        <strong>Impact Category:</strong> {impact_category} | 
+                        <strong>Potential Reduction:</strong> {potential_reduction:.0f} kg CO₂/year
+                    </div>
+                    <div style="color: #666; font-style: italic;">
+                        {validation_reason}
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
-            
-            # Fun facts
-            st.subheader("🎉 Fun Facts")
-            fun_facts = benchmark_data.get('fun_comparison_facts', [])
+        
+        # Psychographic Insights
+        st.subheader("💭 Personalized Insights")
+        psychographic_insights = calculation_data.get('psychographic_insights', [])
+        
+        if psychographic_insights:
+            for i, insight in enumerate(psychographic_insights, 1):
+                insight_text = insight.get('insight_text', '')
+                related_motivation = insight.get('related_motivation', '')
+                addresses_barrier = insight.get('addresses_barrier', '')
+                actionable_step = insight.get('actionable_next_step', '')
+                
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); 
+                            border-radius: 12px; padding: 1.5rem; margin: 1rem 0; 
+                            border: 1px solid #2196F3; box-shadow: 0 2px 10px rgba(33,150,243,0.1);">
+                    <h4 style="color: #1976D2; margin-bottom: 1rem;">💡 Insight #{i}</h4>
+                    <p style="color: #2C3E50; font-size: 1.1rem; margin-bottom: 1rem; line-height: 1.6;">
+                        {insight_text}
+                    </p>
+                    <div style="background: rgba(255,255,255,0.7); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                        <div style="color: #666; margin-bottom: 0.5rem;">
+                            <strong>🎯 Addresses your motivation:</strong> {related_motivation}
+                        </div>
+                        <div style="color: #666; margin-bottom: 0.5rem;">
+                            <strong>🚧 Helps overcome barrier:</strong> {addresses_barrier}
+                        </div>
+                        <div style="color: #1976D2; font-weight: 600;">
+                            <strong>🚀 Next step:</strong> {actionable_step}
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Fun Comparison Facts
+        fun_facts = calculation_data.get('fun_comparison_facts', [])
+        if fun_facts:
+            st.subheader("🎯 Fun Comparison Facts")
             for fact in fun_facts:
                 st.info(f"💡 {fact}")
+        
+        # Priority Reduction Areas
+        priority_areas = calculation_data.get('priority_reduction_areas', [])
+        if priority_areas:
+            st.subheader("🎯 Priority Focus Areas")
+            cols = st.columns(len(priority_areas))
+            for i, area in enumerate(priority_areas):
+                with cols[i]:
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); 
+                                border-radius: 12px; padding: 1rem; text-align: center; 
+                                border: 2px solid #FF9800; margin: 0.5rem 0;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🎯</div>
+                        <div style="color: #E65100; font-weight: 600;">{area}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+        
+        # Calculation Details
+        with st.expander("📋 Calculation Details"):
+            calculation_method = calculation_data.get('calculation_method', 'Standard emission factors applied')
+            data_confidence = calculation_data.get('data_confidence', 'medium')
             
-            # Key insights
-            st.subheader("💡 Key Insights")
-            key_insights = benchmark_data.get('key_insights', [])
-            for insight in key_insights:
-                st.success(f"✨ {insight}")
+            confidence_color = {
+                'high': '#4CAF50',
+                'medium': '#FF9800', 
+                'low': '#F44336'
+            }.get(data_confidence, '#666')
+            
+            st.markdown(f"""
+            **Calculation Method:** {calculation_method}
+            
+            **Data Confidence:** <span style="color: {confidence_color}; font-weight: 600;">{data_confidence.upper()}</span>
+            
+            **Regional Comparison:** Compared to {regional_comparison.get('user_location', 'regional')} average of {regional_comparison.get('local_average_kg', 0):.1f} kg CO₂/year
+            """, unsafe_allow_html=True)
         
         st.markdown("---")
         

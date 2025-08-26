@@ -1,75 +1,188 @@
 # tasks.py
 from crewai import Task
+from .models import ProfilerAgentOutput, AnalystAgentOutput
 
+
+## ========================================================================
+##                           Agent 1 (Profiler) Task
+## ========================================================================
 def create_profiling_task(agent, user_data):
-    """Creates the user profiling and data enrichment task for Profiler Agent"""
+    """Creates the user profiling task to analyze data and generate enriched profile"""
     
     return Task(
         description=(
-            "Analyze user's onboarding JSON data deeply, identify personalized data gaps, and ask 3-5 contextual questions "
-            "based on their specific lifestyle patterns and carbon footprint areas.\n\n"
+            "Analyze user's onboarding data, extract insights from additional_info text, and create an enriched "
+            "user profile with key carbon reduction levers and a narrative summary.\n\n"
             
             "USER ONBOARDING DATA:\n"
             f"{user_data}\n\n"
             
             "TASK STEPS:\n"
-            "1. DEEP ANALYSIS: Study user's specific lifestyle choices, transportation habits, energy usage, and diet patterns\n"
-            "2. PERSONALIZED GAP IDENTIFICATION: Find missing quantities that matter most for THIS user's carbon profile\n"
-            "3. CONTEXTUAL QUESTION CRAFTING: Create 3-5 targeted questions based on user's specific responses\n"
-            "4. GENERATE VARIED QUESTIONS: Ensure questions are different each time by prioritizing the most impactful areas\n\n"
+            "1. RESTRUCTURE DATA: Organize user data into clear categories (demographics, lifestyle_habits, consumption_patterns, psychographic_insights)\n"
+            "2. EXTRACT INSIGHTS: Process additional_info field to understand user's personal context and goals\n"
+            "3. IDENTIFY KEY LEVERS: Find 4-6 specific, actionable areas with highest carbon reduction potential for this user\n"
+            "4. CREATE NARRATIVE: Write 70-90 word narrative summarizing user's lifestyle, motivations, and context\n\n"
             
-            "QUESTION EXAMPLES (adapt these concepts to the user's specific situation):\n"
-            "Transportation Examples:\n"
-            "- 'What temperature do you set your thermostat to in winter?'\n"
-            "- 'How many miles exactly do you drive per week for work?'\n"
-            "- 'How often do you combine errands into one trip?'\n"
-            "\n"
-            "Energy Examples:\n"
-            "- 'How many hours per day do you run your AC during summer?'\n"
-            "- 'What percentage of your appliances do you unplug when not in use?'\n"
-            "- 'How many LED vs traditional bulbs do you have?'\n"
-            "\n"
-            "Diet Examples:\n"
-            "- 'How many meat-based meals do you eat per week?'\n"
-            "- 'What percentage of your food comes from local sources?'\n"
-            "- 'How much food waste do you generate weekly (in pounds)?'\n\n"
+            "KEY LEVERS should be specific and actionable, such as:\n"
+            "- 'Reduce car usage by 30%'\n"
+            "- 'Switch to renewable energy'\n"
+            "- 'Reduce meat consumption'\n"
+            "- 'Improve home insulation'\n"
+            "- 'Reduce food waste'\n"
+            "- 'Use public transport more'\n\n"
             
-            "QUESTION REQUIREMENTS:\n"
-            "- Must be directly relevant to user's specific lifestyle\n"
-            "- Focus on quantifiable, measurable behaviors\n"
-            "- Target high-impact carbon areas specific to this user\n"
-            "- Generate different questions each time based on their unique profile\n"
+            "NARRATIVE should include:\n"
+            "- Living situation and location context\n"
+            "- Transportation and commuting patterns\n"
+            "- Diet and consumption habits\n"
+            "- Personal motivations and barriers\n"
+            "- Key lifestyle characteristics\n"
         ),
         expected_output=(
-            "A valid JSON object with exactly these fields:\n"
+            "A valid JSON object with the complete restructured user profile:\n"
             "{\n"
-            '  "user_lifestyle_analysis": "Brief analysis of user\'s main carbon impact areas",\n'
-            '  "personalized_data_gaps": ["specific missing info relevant to this user\'s lifestyle"],\n'
-            '  "specific_questions": [\n'
-            '    "Contextual question 1 based on user data?",\n'
-            '    "Contextual question 2 targeting their habits?",\n'
-            '    "Contextual question 3 about measurable behavior?"\n'
-            '  ],\n'
-            '  "question_rationale": ["Why each question matters for this user\'s carbon footprint"],\n'
-            '  "enriched_user_profile": {\n'
-            '    "original_data": "copy of original user data",\n'
-            '    "lifestyle_insights": "key patterns identified from their responses",\n'
-            '    "carbon_priority_areas": ["top 3 areas for this user to focus on"],\n'
-            '    "question_responses": {\n'
-            '      "question_1_answer": "",\n'
-            '      "question_2_answer": "",\n'
-            '      "question_3_answer": ""\n'
+            '  "demographics": {\n'
+            '    "location": "City, Country",\n'
+            '    "climate": "Climate type",\n'
+            '    "household_size": number,\n'
+            '    "home_type": "Type",\n'
+            '    "ownership": "Own/Rent"\n'
+            '  },\n'
+            '  "lifestyle_habits": {\n'
+            '    "diet": {\n'
+            '      "type": "Diet type",\n'
+            '      "meat_frequency": "Frequency",\n'
+            '      "food_waste": "Level"\n'
+            '    },\n'
+            '    "transportation": {\n'
+            '      "primary_mode": "Main transport",\n'
+            '      "car_type": "Vehicle type",\n'
+            '      "commute_details": "Distance/frequency"\n'
+            '    },\n'
+            '    "energy_usage": {\n'
+            '      "heating_source": "Heating type",\n'
+            '      "ac_usage": "AC frequency",\n'
+            '      "energy_conservation_habits": "Conservation level"\n'
             '    }\n'
-            '  }\n'
+            '  },\n'
+            '  "consumption_patterns": {\n'
+            '    "shopping_frequency": "Frequency",\n'
+            '    "plastic_usage": "Usage level",\n'
+            '    "recycling_habit": "Recycling level"\n'
+            '  },\n'
+            '  "psychographic_insights": {\n'
+            '    "motivations": ["Primary motivations"],\n'
+            '    "barriers": ["Main challenges"],\n'
+            '    "goals": ["Improvement areas"]\n'
+            '  },\n'
+            '  "key_levers": [\n'
+            '    "Specific actionable lever 1",\n'
+            '    "Specific actionable lever 2",\n'
+            '    "Specific actionable lever 3",\n'
+            '    "Specific actionable lever 4"\n'
+            '  ],\n'
+            '  "narrative_text": "70-90 word narrative summarizing user\'s lifestyle, location, habits, motivations, and personal context from additional_info."\n'
             "}\n"
-            "CRITICAL: No text outside the JSON object. Start with { and end with }."
+            "CRITICAL: Return ONLY the JSON object. No text before or after. Start with { and end with }."
         ),
         agent=agent,
         async_execution=False,
+        output_json=ProfilerAgentOutput,
     )
 
-def create_calculation_task(agent, user_data):
-    """Creates the carbon calculation and impact categorization task for Analyst Agent"""
+
+# # =========================================================
+# #             Agent 2 - Analyst Agent Task
+# # =========================================================
+
+def create_analyst_task(agent, enriched_profile_data):
+    """Creates the comprehensive carbon analysis task for Analyst Agent using enriched profile"""
+    
+    return Task(
+        description=(
+            "Analyze the enriched user profile to calculate carbon footprint, validate key levers, "
+            "and generate personalized insights. Be concise and focus on the most impactful findings.\n\n"
+            
+            "ENRICHED PROFILE:\n"
+            f"{enriched_profile_data}\n\n"
+            
+            "ANALYSIS TASKS:\n"
+            "1. Calculate annual carbon footprint by category using emission factors\n"
+            "2. Validate top 3 key levers from profile with potential reduction in kg CO2\n"
+            "3. Create 2-3 personalized insights connecting emissions to user's motivations/barriers\n"
+            "4. Generate sustainability score (0-10) and regional comparison\n\n"
+            
+            "EMISSION FACTORS:\n"
+            "Transport: Gas car 0.4kg/mile, Hybrid 0.2kg/mile, Electric 0.15kg/mile\n"
+            "Diet: Beef 27kg/kg, Chicken 7kg/kg, Vegetables 2kg/kg\n"
+            "Energy: Natural gas 5.3kg/therm, Electricity 0.7kg/kWh\n"
+            "Digital: AI query 4g, Streaming 36g/hour\n\n"
+            
+            "IMPORTANT: For 'top_impact_categories', use user-friendly names:\n"
+            "- 'Transportation' (not 'transportation_kg')\n"
+            "- 'Diet' (not 'diet_kg')\n"
+            "- 'Home Energy' (not 'home_energy_kg')\n"
+            "- 'Shopping' (not 'shopping_kg')\n"
+            "- 'Digital Footprint' (not 'digital_footprint_kg')\n"
+            "- 'Other' (not 'other_kg')\n\n"
+            
+            "PSYCHOGRAPHIC INTEGRATION (keep insights precise):\n"
+            "- Connect high emissions with user motivations (e.g., 'saving money' + energy use)\n"
+            "- Address barriers with specific actions (e.g., 'not knowing what to do' + simple steps)\n"
+            "- Link goals to emission reductions (e.g., 'reduce footprint' + quantified impact)\n\n"
+            
+            "FOCUS ON BREVITY: Keep insights actionable but concise."
+        ),
+        expected_output=(
+            "Concise JSON object with carbon analysis:\n"
+            "{\n"
+            '  "total_carbon_footprint_kg": number,\n'
+            '  "total_carbon_footprint_tonnes": number,\n'
+            '  "category_breakdown": {\n'
+            '    "transportation_kg": number,\n'
+            '    "diet_kg": number,\n'
+            '    "home_energy_kg": number,\n'
+            '    "shopping_kg": number,\n'
+            '    "digital_footprint_kg": number,\n'
+            '    "other_kg": number\n'
+            '  },\n'
+            '  "top_impact_categories": ["Transportation", "Home Energy", "Diet"],\n'
+            '  "sustainability_score": number,\n'
+            '  "score_category": "category",\n'
+            '  "regional_comparison": {\n'
+            '    "user_location": "location",\n'
+            '    "local_average_kg": number,\n'
+            '    "comparison_status": "above/below/equal",\n'
+            '    "percentage_difference": number\n'
+            '  },\n'
+            '  "key_lever_validations": [\n'
+            '    {\n'
+            '      "lever": "lever text",\n'
+            '      "validated": boolean,\n'
+            '      "impact_category": "category",\n'
+            '      "potential_reduction_kg": number,\n'
+            '      "validation_reason": "brief reason"\n'
+            '    }\n'
+            '  ],\n'
+            '  "psychographic_insights": [\n'
+            '    {\n'
+            '      "insight_text": "Precise insight connecting emissions to user psychology",\n'
+            '      "related_motivation": "specific motivation from profile",\n'
+            '      "addresses_barrier": "specific barrier from profile",\n'
+            '      "actionable_next_step": "concrete, measurable action"\n'
+            '    }\n'
+            '  ],\n'
+            '  "fun_comparison_facts": ["fact1", "fact2"],\n'
+            '  "priority_reduction_areas": ["area1", "area2"],\n'
+            '  "calculation_method": "brief method",\n'
+            '  "data_confidence": "high/medium/low"\n'
+            "}\n"
+            "CRITICAL: Return ONLY valid JSON. Keep psychographic insights precise and actionable."
+        ),
+        agent=agent,
+        async_execution=False,
+        output_json=AnalystAgentOutput,
+    )
     
     return Task(
         description=(
@@ -120,7 +233,9 @@ def create_calculation_task(agent, user_data):
         agent=agent,
         async_execution=False,
     )
-
+# # 
+# # Agent Task 2
+# # -----------------------------
 def create_benchmarking_task(agent, user_data, carbon_results):
     """Creates the benchmarking, scoring, and insights task for Analyst Agent"""
     

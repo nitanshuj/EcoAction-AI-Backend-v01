@@ -2,6 +2,9 @@
 # utils/database.py
 import streamlit as st
 import pandas as pd
+# Functions for user profiles & action logging (Supabase)
+# utils/database.py
+import streamlit as st
 from datetime import date, timedelta
 from supabase import Client
 from .supabase_client import init_supabase
@@ -37,8 +40,7 @@ def fetch_user_profile(user_id: str):
 def save_onboarding_data(user_id: str, onboarding_data: dict) -> bool:
     """
     Save or update user onboarding data in Supabase user_profiles table.
-    Also marks onboarding as completed in users table.
-    
+   
     Args:
         user_id (str): The user's UUID
         onboarding_data (dict): The onboarding form data
@@ -65,6 +67,32 @@ def save_onboarding_data(user_id: str, onboarding_data: dict) -> bool:
     except Exception as e:
         st.error(f"Error saving onboarding data: {str(e)}")
         return False
+
+def update_onboarding_status(user_id: str, status: bool = True) -> bool:
+    """
+    Update user's onboarding status.
+    
+    Args:
+        user_id (str): The user's UUID
+        status (bool): Onboarding completion status
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        supabase = get_supabase()
+        
+        response = supabase.table('users')\
+            .update({'onboarding_status': status})\
+            .eq('id', user_id)\
+            .execute()
+        
+        return True if response.data else False
+        
+    except Exception as e:
+        st.error(f"Error updating onboarding status: {str(e)}")
+        return False
+
 
 def log_user_action(user_id: str, action_id: str, co2_saved: float) -> bool:
     """
@@ -382,30 +410,7 @@ def check_onboarding_status(user_id: str) -> bool:
         st.error(f"Error checking onboarding status: {str(e)}")
         return False
 
-def update_onboarding_status(user_id: str, status: bool = True) -> bool:
-    """
-    Update user's onboarding status.
-    
-    Args:
-        user_id (str): The user's UUID
-        status (bool): Onboarding completion status
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
-    try:
-        supabase = get_supabase()
-        
-        response = supabase.table('users')\
-            .update({'onboarding_status': status})\
-            .eq('id', user_id)\
-            .execute()
-        
-        return True if response.data else False
-        
-    except Exception as e:
-        st.error(f"Error updating onboarding status: {str(e)}")
-        return False
+
 
 def get_user_profile_data(user_id: str):
     """
@@ -591,9 +596,14 @@ def save_agent_results(user_id: str, agent_type: str, results: dict, agent_sessi
         
         if agent_type == 'analyst':
             # Save to user_scores table according to your schema
-            # Extract calculation and benchmark data from combined results
-            calculation_data = results.get('calculation_data', {})
-            benchmark_data = results.get('benchmark_data', {})
+            # The results from Agent 2 are the complete analysis data
+            # Store the full results as 'scores' and create a simple benchmark entry
+            calculation_data = results  # Store the complete Agent 2 output
+            benchmark_data = {
+                'regional_comparison': results.get('regional_comparison', {}),
+                'sustainability_score': results.get('sustainability_score', 0),
+                'score_category': results.get('score_category', 'Unknown')
+            }
             
             # Check if user_scores record exists
             existing_response = supabase.table('user_scores')\
@@ -1018,3 +1028,68 @@ def get_daily_tasks(user_id: str, weekly_plan_id: str):
     except Exception as e:
         st.error(f"Error fetching daily tasks: {str(e)}")
         return []
+
+
+# ====================================================================
+# PROFILER AGENT (AGENT 1) FUNCTIONS
+# ====================================================================
+
+def save_profiler_results(user_id: str, profiler_output: dict) -> bool:
+    """
+    Save profiler agent results to the database in the onboarding_final column.
+    
+    Args:
+        user_id (str): The user's UUID
+        profiler_output (dict): Agent 1 profiler results (enriched profile)
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        supabase = get_supabase()
+        
+        # Update the onboarding_final column for existing user record
+        response = supabase.table('user_profiles')\
+            .update({'onboarding_final': profiler_output})\
+            .eq('user_id', user_id)\
+            .execute()
+        
+        # If no record was updated, try to insert a new one
+        if not response.data:
+            response = supabase.table('user_profiles').insert({
+                'user_id': user_id,
+                'onboarding_final': profiler_output
+            }).execute()
+        
+        return True if response.data else False
+        
+    except Exception as e:
+        st.error(f"Error saving profiler results: {str(e)}")
+        return False
+
+def get_profiler_results(user_id: str):
+    """
+    Get profiler agent results from the onboarding_final column.
+    
+    Args:
+        user_id (str): The user's UUID
+        
+    Returns:
+        dict: Profiler results or None if not found
+    """
+    try:
+        supabase = get_supabase()
+        
+        response = supabase.table('user_profiles')\
+            .select('onboarding_final')\
+            .eq('user_id', user_id)\
+            .execute()
+        
+        if response.data and len(response.data) > 0 and response.data[0]['onboarding_final']:
+            return response.data[0]['onboarding_final']
+        else:
+            return None
+            
+    except Exception as e:
+        st.error(f"Error fetching profiler results: {str(e)}")
+        return None

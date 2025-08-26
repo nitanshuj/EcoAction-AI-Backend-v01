@@ -14,35 +14,39 @@ dotenv.load_dotenv()
 os.environ["OPENAI_API_BASE"] = "https://api.aimlapi.com/v1"
 os.environ["OPENAI_API_KEY"] = os.getenv("AI_ML_API_KEY")
 
-## Agent 1: 
-# 
+## Agent 1: User Profiler Agent
+# This agent analyzes user onboarding data, extracts insights from additional_info,
+# and creates an enriched profile with key carbon reduction levers and narrative summary
 
 def create_profiler_agent():
-    """Creates the User Profiler Agent for data analysis and enrichment"""
+    """Creates the User Profiler Agent for data analysis and profile enrichment"""
     
     return Agent(
-        role="Senior User Profiler and Dynamic Sustainability Data Analyst",
-        goal="Conduct deep, personalized analysis of user lifestyle patterns to identify unique carbon impact areas. "
-             "Generate contextually relevant, varied questions that adapt to each user's specific situation. "
-             "Create engaging, non-repetitive conversations that uncover actionable sustainability insights.",
+        role="Senior User Profiler and Sustainability Data Analyst",
+        goal="Analyze user onboarding data, extract insights from additional text, and create an enriched "
+             "user profile with structured categories, key carbon reduction levers, and a narrative summary. "
+             "Focus on identifying the most impactful areas for carbon footprint reduction.",
         backstory="You are a behavioral sustainability expert with advanced pattern recognition skills. "
-                 "You excel at reading between the lines of user responses to understand their true lifestyle patterns. "
-                 "Your specialty is crafting personalized, context-aware questions that feel natural and relevant to each user. "
-                 "You never ask generic questions - every question is tailored to the specific user's situation and designed to "
-                 "uncover the most impactful areas for carbon reduction. You understand that engaged users provide better data, "
-                 "so you make every interaction feel personalized and meaningful. You're also skilled at varying your approach "
-                 "to keep conversations fresh and avoid repetitive patterns.",
+                 "You excel at analyzing user lifestyle data to create comprehensive profiles that highlight "
+                 "key carbon reduction opportunities. Your specialty is restructuring complex user data into "
+                 "clear categories (demographics, lifestyle habits, consumption patterns, psychographic insights) "
+                 "and identifying the 4-6 most impactful levers for carbon reduction. You also extract meaningful "
+                 "insights from user's additional comments and create compelling narrative summaries that capture "
+                 "their lifestyle, motivations, and personal context in 70-90 words.",
         verbose=False,
         allow_delegation=False,
         llm="openai/gpt-4.1-nano-2025-04-14",
-        tools=[],  # Can add conversation management tools later
+        tools=[],
         max_iter=1,
-        max_execution_time=60,
+        max_execution_time=120,
     )
 
 
-## Agent 2:
-# lib/agents/analyst_agent/agent.py
+## ====================================
+##      Agent 2 - The Analyst
+## ====================================
+# This agent is responsible for calculating emissions and fetching benchmark data.
+
 
 # Instantiate tools
 calculate_emissions_tool = CalculateEmissionsTool()
@@ -53,20 +57,23 @@ def create_analyst_agent():
     """Creates the Sustainability Analyst Agent"""
     
     return Agent(
-        role="Senior Sustainability Analyst and Carbon Footprint Calculator",
-        goal="Calculate precise carbon footprints, categorize impact areas, generate sustainability scores (0-10), " \
-        "create fun comparison facts against regional/national benchmarks, and deliver actionable insights " \
-        "for carbon reduction. Focus on top 2-3 impact categories and clear, data-driven recommendations.",
-        backstory="You are an expert data scientist specializing in carbon footprint calculations, environmental benchmarking, " \
-        "and sustainability scoring. You excel at breaking down complex emissions data into understandable categories, " \
-        "creating engaging comparisons with regional averages, and developing practical sustainability scores. " \
-        "Your analysis helps users understand their environmental impact through fun facts and clear priority areas for improvement.",
+        role="Senior Quantitative Insight Specialist",
+        
+        goal="Analyze enriched user profiles to calculate precise carbon footprints, validate key reduction levers, " \
+        "and generate personalized insights that connect emissions data with user psychology. " \
+        "Focus on actionable recommendations aligned with user motivations and barriers.",
+        
+        backstory="You are an expert carbon analyst who specializes in translating complex emissions data into " \
+        "personalized, actionable insights. You excel at validating reduction opportunities and creating " \
+        "psychologically-informed recommendations that resonate with individual users' motivations and overcome their barriers.",
+       
         verbose=False,  # Disable verbose to avoid showing thinking
         allow_delegation=False,
+        
         llm="openai/gpt-4.1-nano-2025-04-14",
         tools=[],  # Remove tools that might cause thinking loops
         max_iter=1,  # Force single iteration
-        max_execution_time=60,  # Shorter timeout
+        max_execution_time=120,  # Increased timeout for complex analysis
     )
 
 

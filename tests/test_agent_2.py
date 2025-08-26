@@ -1,131 +1,158 @@
-# agent/test_analysis.py
-import os
-import sys
-import json
+# test_agent_2.py
+"""Test script for Agent 2 (Analyst) functionality"""
 
-# Add project root to the Python path to allow imports from other folders
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import sys, os, json
 
-from agent.crew import run_analyst_workflow, create_analyst_crew
-from agent.agents import create_analyst_agent, create_planner_agent
-from agent.tasks import create_calculation_task
-from data_model.database import get_user_profile_data
+# Add the project root to the path so imports work
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-# Use a real user ID from your Supabase table that has onboarding data
-TEST_USER_ID = "a7fc7052-b582-440e-b8d6-ca07493f987d" 
+from agent.crew import run_analyst_workflow
+from agent.models import validate_analyst_output
 
-MOCK_ONBOARDING_DATA = {}
-
-def get_user_data():
-    """Get user onboarding data for testing."""
+def test_analyst_agent():
+    """Test the analyst agent with sample enriched profile data"""
+    
+    # Sample enriched profile data (output from Agent 1)
+    sample_enriched_profile = {
+        "demographics": {
+            "location": "San Francisco, United States",
+            "climate": "Mediterranean",
+            "household_size": 2,
+            "home_type": "Apartment",
+            "ownership": "Rent"
+        },
+        "lifestyle_habits": {
+            "diet": {
+                "type": "Omnivore",
+                "meat_frequency": "A few times a week",
+                "food_waste": "Sometimes"
+            },
+            "transportation": {
+                "primary_mode": "Personal Car",
+                "car_type": "Sedan",
+                "commute_details": "20 miles; Occasionally uses rideshare; Weekly public transport"
+            },
+            "energy_usage": {
+                "heating_source": "Natural Gas",
+                "ac_usage": "Sometimes",
+                "energy_conservation_habits": "Often"
+            }
+        },
+        "consumption_patterns": {
+            "shopping_frequency": "Weekly",
+            "plastic_usage": "Sometimes",
+            "recycling_habit": "Recycles everything possible"
+        },
+        "psychographic_insights": {
+            "motivations": ["Protecting the environment"],
+            "barriers": ["Not knowing what to do"],
+            "goals": ["Reducing carbon footprint", "Start composting", "Reduce energy bills"]
+        },
+        "key_levers": [
+            "Start composting to reduce organic waste",
+            "Increase use of public transportation and ridesharing to cut car emissions by 30%",
+            "Switch to renewable energy options or improve energy efficiency to lower energy bills",
+            "Reduce meat intake further to minimize associated emissions"
+        ],
+        "narrative_text": "Living in San Francisco in a rented apartment, this environmentally motivated user works from home, driving a hybrid sedan for daily commutes. They enjoy cooking and gaming, with moderate digital device use. Their primary goal is reducing their carbon footprint and energy bills, motivated by protecting the environment but unsure of specific actions. They are eager to start composting and cut back on car usage and meat consumption to make a meaningful impact."
+    }
+    
     try:
-        # Attempt to load environment variables for Supabase
-        import dotenv
-        dotenv.load_dotenv()
+        print("🧪 Testing Analyst Agent (Agent 2)...")
+        print(f"📋 Input enriched profile: {json.dumps(sample_enriched_profile, indent=2)}")
         
-        # Fetch real data if available
-        data = get_user_profile_data(TEST_USER_ID)
-        if data and 'onboarding_data' in data and data['onboarding_data']:
-            print(f"✅ Successfully fetched real data for user {TEST_USER_ID}.")
-            return data['onboarding_data']
-        else:
-            # Fallback to mock data if no real data is found
-            print(f"⚠️  Could not fetch real data for user {TEST_USER_ID}, using mock data.")
-            return MOCK_ONBOARDING_DATA
-    except Exception as e:
-        # Handle cases where Supabase connection fails
-        print(f"❌ Supabase connection failed: {e}. Using mock data.")
-        return MOCK_ONBOARDING_DATA
-
-def run_analyst_test():
-    """Run the analyst agent test."""
-    print("🌱 EcoAction AI - Analyst Agent Test")
-    print("=" * 50)
-    
-    # Debug environment variables
-    print("\n🔧 Environment Debug:")
-    print(f"- OPENAI_API_BASE: {os.environ.get('OPENAI_API_BASE', 'Not set')}")
-    print(f"- OPENAI_API_KEY: {'Set' if os.environ.get('OPENAI_API_KEY') else 'Not set'}")
-    print(f"- AI_ML_API_KEY: {'Set' if os.getenv('AI_ML_API_KEY') else 'Not set'}")
-    
-    # Get user data
-    user_data = get_user_data()
-    
-    print("\n📋 User Data Summary:")
-    print(f"- Location: {user_data.get('location_climate', {}).get('city', 'Unknown')}")
-    print(f"- Household size: {user_data.get('household', {}).get('household_size', 'Unknown')}")
-    print(f"- Primary transport: {user_data.get('transport', {}).get('primary_transport', 'Unknown')}")
-    print(f"- Diet type: {user_data.get('diet_habits', {}).get('diet_type', 'Unknown')}")
-    
-    print("\n🚀 Running Analyst Agent...")
-    print("-" * 30)
-    
-    try:
-        # Test LiteLLM configuration first
-        print("\n🧪 Testing LiteLLM Configuration...")
-        import litellm
+        # For testing, we'll create a temporary test that directly uses the task
+        from agent.agents import create_analyst_agent
+        from agent.tasks import create_analyst_task
+        from crewai import Crew, Process
         
-        # Test a simple completion call
-        try:
-            test_response = litellm.completion(
-                model="openai/gpt-4.1-nano-2025-04-14",
-                messages=[{"role": "user", "content": "Say 'Hello World' in JSON format"}],
-                max_tokens=50
-            )
-            print(f"✅ LiteLLM test successful: {test_response.choices[0].message.content}")
-        except Exception as e:
-            print(f"❌ LiteLLM test failed: {e}")
-            print("This explains why the agent is getting empty responses.")
-            return
+        print("\n🚀 Running analyst workflow...")
         
-        # Use the complete analyst crew workflow
-        print("🔄 Executing complete analyst workflow (Analyst + Planner agents)...")
-        crew = create_analyst_crew(user_data)
-        result = crew.kickoff()
+        # Create analyst agent
+        analyst_agent = create_analyst_agent()
         
-        print("\n" + "=" * 60)
-        print("📊 COMPLETE WORKFLOW RESULTS (3 AGENTS)")
-        print("=" * 60)
+        # Create analyst task with enriched profile
+        analyst_task = create_analyst_task(analyst_agent, sample_enriched_profile)
         
-        # Extract and display clean JSON
-        if result:
-            # Convert result to string if it's not already
-            result_str = str(result).strip()
+        # Form the crew
+        crew = Crew(
+            agents=[analyst_agent],
+            tasks=[analyst_task],
+            process=Process.sequential,
+            verbose=False,
+            memory=False
+        )
+        
+        # Execute workflow
+        results = crew.kickoff()
+        
+        if results:
+            print("✅ Analyst workflow completed!")
             
-            # Try to extract JSON from the result
-            json_start = result_str.find('{')
-            json_end = result_str.rfind('}') + 1
-            
-            if json_start != -1 and json_end > json_start:
-                json_str = result_str[json_start:json_end]
-                try:
-                    # Parse and reformat the JSON
-                    parsed_json = json.loads(json_str)
-                    print(json.dumps(parsed_json, indent=2, ensure_ascii=False))
-                except json.JSONDecodeError as e:
-                    print(f"⚠️ JSON parsing error: {e}")
-                    print("Raw JSON string:")
-                    print(json_str)
-            else:
-                # If no JSON found, try to parse the entire result
-                try:
-                    if isinstance(result, str):
-                        parsed_result = json.loads(result)
-                        print(json.dumps(parsed_result, indent=2, ensure_ascii=False))
+            # Parse results
+            try:
+                if hasattr(results, 'json') and results.json:
+                    if isinstance(results.json, str):
+                        parsed_results = json.loads(results.json)
                     else:
-                        print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
-                except json.JSONDecodeError:
-                    print("⚠️ Result is not valid JSON. Raw output:")
-                    print(result)
-        else:
-            print("❌ No result returned from agent")
+                        parsed_results = results.json
+                elif hasattr(results, 'raw') and results.raw:
+                    parsed_results = json.loads(results.raw)
+                else:
+                    result_str = str(results)
+                    parsed_results = json.loads(result_str)
+                    
+            except (json.JSONDecodeError, AttributeError) as e:
+                print(f"❌ Failed to parse results as JSON: {e}")
+                print(f"Raw results: {results}")
+                return False
             
-        print("=" * 60)
+            print(f"\n📊 Raw Results: {json.dumps(parsed_results, indent=2)}")
+            
+            # Validate with Pydantic
+            try:
+                validated_output = validate_analyst_output(parsed_results)
+                print("\n✅ Pydantic validation successful!")
+                
+                # Display key insights using new model structure
+                print(f"\n🌍 Carbon Footprint: {validated_output.total_carbon_footprint_tonnes:.2f} tonnes CO₂/year")
+                print(f"📊 Sustainability Score: {validated_output.sustainability_score}/10 ({validated_output.score_category})")
+                print(f"🎯 Top Impact Areas: {', '.join(validated_output.top_impact_categories)}")
+                print(f"📍 Compared to {validated_output.regional_comparison.user_location}: {validated_output.regional_comparison.comparison_status} average")
+                
+                # Display key lever validations
+                print("\n🔧 Key Lever Validations:")
+                for i, validation in enumerate(validated_output.key_lever_validations, 1):
+                    status = "✅ Validated" if validation.validated else "❌ Not validated"
+                    print(f"  {i}. {validation.lever}")
+                    print(f"     {status} - Potential reduction: {validation.potential_reduction_kg}kg CO₂/year")
+                    print(f"     Reason: {validation.validation_reason}")
+                
+                # Display psychographic insights
+                print("\n💭 Psychographic Insights:")
+                for i, insight in enumerate(validated_output.psychographic_insights, 1):
+                    print(f"  {i}. {insight.insight_text}")
+                    print(f"     Addresses: {insight.addresses_barrier} | Motivation: {insight.related_motivation}")
+                    print(f"     Next step: {insight.actionable_next_step}")
+                
+                return True
+                
+            except ValueError as e:
+                print(f"❌ Pydantic validation failed: {str(e)}")
+                return False
+                
+        else:
+            print("❌ Analyst workflow returned no results")
+            return False
             
     except Exception as e:
-        print(f"\n❌ Error running analyst agent: {e}")
+        print(f"❌ Error testing analyst agent: {str(e)}")
         import traceback
-        traceback.print_exc()
+        print(f"🔍 Traceback: {traceback.format_exc()}")
+        return False
 
 if __name__ == "__main__":
-    run_analyst_test()
+    success = test_analyst_agent()
+    print(f"\n{'🎉 Test PASSED' if success else '💥 Test FAILED'}")

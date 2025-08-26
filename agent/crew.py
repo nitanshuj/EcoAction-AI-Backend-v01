@@ -1,32 +1,65 @@
 # crew.py
 from crewai import Crew, Process
 from .agents import create_profiler_agent, create_analyst_agent, create_planner_agent
-from .tasks import create_profiling_task, create_calculation_task, create_benchmarking_task, create_weekly_planning_task, create_update_planning_task, create_daily_tasks_generation_task
+from .tasks import create_profiling_task, create_analyst_task, create_benchmarking_task, create_weekly_planning_task, create_update_planning_task, create_daily_tasks_generation_task
+import json
 
-def create_complete_crew(user_data):
-    """Creates and runs the complete 3-agent crew with sequential tasks"""
+
+# Agent 1 - Profiler Agent Workflow
+# =========================================================
+def run_profiler_workflow(user_data):
+    """Executes the profiler agent workflow (Agent 1)"""
     
-    # Create agents
-    profiler_agent = create_profiler_agent()
-    analyst_agent = create_analyst_agent()
-    planner_agent = create_planner_agent()
-    
-    # Create tasks - sequential workflow
-    profiling_task = create_profiling_task(profiler_agent, user_data)
-    calculation_task = create_calculation_task(analyst_agent, user_data)
-    benchmarking_task = create_benchmarking_task(analyst_agent, user_data, calculation_task)
-    planning_task = create_weekly_planning_task(planner_agent, user_data, calculation_task, benchmarking_task)
-    
-    # Form the crew with sequential process
+    # Create profiler agent
+    profiler_agent = create_profiler_agent()    
+    # Create profiling task
+    profiling_task = create_profiling_task(profiler_agent, user_data)    
+    # Form the crew with single profiler agent
     crew = Crew(
-        agents=[profiler_agent, analyst_agent, planner_agent],
-        tasks=[profiling_task, calculation_task, benchmarking_task, planning_task],
+        agents=[profiler_agent],
+        tasks=[profiling_task],
+        process=Process.sequential,
+        verbose=False,
+        memory=False
+    )    
+    # Execute and return results
+    results = crew.kickoff()    
+    return results
+
+
+
+# Agent 2 - Analyst Agent Workflow
+# =========================================================
+def run_analyst_workflow(user_id):
+    """Executes the analyst workflow using enriched profile from Agent 1"""
+    
+    # Import here to avoid circular imports
+    from data_model.database import get_profiler_results
+    
+    # Get enriched profile from Agent 1 results
+    enriched_profile = get_profiler_results(user_id)
+    
+    if not enriched_profile:
+        raise ValueError("No enriched profile found. Agent 1 must be completed first.")
+    
+    # Create analyst agent
+    analyst_agent = create_analyst_agent()
+    
+    # Create analyst task with enriched profile as input
+    analyst_task = create_analyst_task(analyst_agent, enriched_profile)
+    
+    # Form the crew with single analyst agent
+    crew = Crew(
+        agents=[analyst_agent],
+        tasks=[analyst_task],
         process=Process.sequential,
         verbose=False,
         memory=False
     )
     
-    return crew
+    # Execute and return results
+    results = crew.kickoff()
+    return results
 
 def create_analyst_crew(user_data):
     """Creates and runs the analyst crew (legacy - for backwards compatibility)"""
@@ -35,37 +68,21 @@ def create_analyst_crew(user_data):
     analyst_agent = create_analyst_agent()
     planner_agent = create_planner_agent()
     
-    # Create tasks
-    calculation_task = create_calculation_task(analyst_agent, user_data)
-    benchmarking_task = create_benchmarking_task(analyst_agent, user_data, calculation_task)
-    planning_task = create_weekly_planning_task(planner_agent, user_data, calculation_task, benchmarking_task)
+    # Create tasks - using new analyst task
+    analyst_task = create_analyst_task(analyst_agent, user_data)
+    benchmarking_task = create_benchmarking_task(analyst_agent, user_data, analyst_task)
+    planning_task = create_weekly_planning_task(planner_agent, user_data, analyst_task, benchmarking_task)
     
     # Form the crew with sequential process
     crew = Crew(
         agents=[analyst_agent, planner_agent],
-        tasks=[calculation_task, benchmarking_task, planning_task],
+        tasks=[analyst_task, benchmarking_task, planning_task],
         process=Process.sequential,
         verbose=False,
         memory=False
     )
     
     return crew
-
-def run_complete_workflow(user_data):
-    """Executes the complete 3-agent workflow including profiler"""
-    
-    crew = create_complete_crew(user_data)
-    results = crew.kickoff()
-    
-    return results
-
-def run_analyst_workflow(user_data):
-    """Executes the complete analyst workflow"""
-    
-    crew = create_analyst_crew(user_data)
-    results = crew.kickoff()
-    
-    return results
 
 def create_update_planner_crew(user_data, carbon_results, benchmark_results, user_update_text):
     """Creates a crew for handling user updates and adaptive planning"""

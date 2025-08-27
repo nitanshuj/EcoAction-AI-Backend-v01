@@ -95,6 +95,8 @@ def create_profiling_task(agent, user_data):
 # #             Agent 2 - Analyst Agent Task
 # # =========================================================
 
+# # Task 1
+# # -----------------------------
 def create_analyst_task(agent, enriched_profile_data):
     """Creates the comprehensive carbon analysis task for Analyst Agent using enriched profile"""
     
@@ -184,57 +186,7 @@ def create_analyst_task(agent, enriched_profile_data):
         output_json=AnalystAgentOutput,
     )
     
-    return Task(
-        description=(
-            "As a Senior Sustainability Analyst, calculate precise annual carbon footprint and categorize impact areas. "
-            "IMPORTANT: You must respond with ONLY a valid JSON object. No text before or after.\n\n"
-            
-            "USER PROFILE DATA:\n"
-            f"{user_data}\n\n"
-            
-            "TASK 1 - CALCULATE FOOTPRINT: Precisely compute annual carbon footprint using standard emission factors:\n"
-            "Categories to analyze:\n"
-            "1. Transportation (vehicle type, mileage, flights)\n"
-            "2. Diet (food types, consumption frequency)\n"
-            "3. Home Energy (heating, cooling, electricity usage)\n"
-            "4. Shopping & Consumer Goods (frequency, types)\n"
-            "5. Digital Footprint (AI usage, streaming, cloud storage, devices)\n"
-            "6. Other activities (hobbies, lifestyle choices)\n\n"
-
-            "EMISSION FACTORS (use your knowledge for missing ones):\n"
-            "- Gasoline car: 0.404 kg CO2/mile | Diesel: 0.453 kg CO2/mile | Electric: 0.200 kg CO2/mile\n"
-            "- Beef: 27.0 kg CO2/kg | Chicken: 6.9 kg CO2/kg | Vegetables: 2.0 kg CO2/kg\n"
-            "- Natural gas: 5.3 kg CO2/therm | Electricity: 0.7 kg CO2/kWh\n"
-            "- AI query: 4.32g CO2 | Video streaming: 36g CO2/hour | Cloud storage: 0.5 kg CO2/GB/year\n\n"
-            
-            "TASK 2 - CATEGORIZE IMPACT: Identify top 2-3 highest impact categories only.\n"
-            "Focus on categories contributing >15% of total footprint.\n\n"
-            
-            "YOUR RESPONSE: Pure JSON starting with { and ending with }"
-        ),
-        expected_output=(
-            "A valid JSON object with exactly these fields:\n"
-            "{\n"
-            '  "total_carbon_footprint_kg": number,\n'
-            '  "category_breakdown": {\n'
-            '    "transportation_kg": number,\n'
-            '    "diet_kg": number,\n'
-            '    "home_energy_kg": number,\n'
-            '    "shopping_kg": number,\n'
-            '    "digital_footprint_kg": number,\n'
-            '    "other_kg": number\n'
-            '  },\n'
-            '  "top_impact_categories": ["category1", "category2", "category3"],\n'
-            '  "calculation_method": "brief description of emission factors used",\n'
-            '  "data_confidence": "high/medium/low"\n'
-            "}\n"
-            "CRITICAL: No text outside the JSON object. Start with { and end with }."
-        ),
-        agent=agent,
-        async_execution=False,
-    )
-# # 
-# # Agent Task 2
+# # Task 2
 # # -----------------------------
 def create_benchmarking_task(agent, user_data, carbon_results):
     """Creates the benchmarking, scoring, and insights task for Analyst Agent"""
@@ -296,6 +248,13 @@ def create_benchmarking_task(agent, user_data, carbon_results):
         async_execution=False,
     )
 
+
+# # =========================================================
+# #             Agent 3 - Planner Agents Tasks
+# # =========================================================
+
+# # Task 1
+# # -----------------------------
 def create_weekly_planning_task(agent, user_data, carbon_results, benchmark_results):
     """Creates the weekly action planning task for Planner Agent"""
     
@@ -345,6 +304,8 @@ def create_weekly_planning_task(agent, user_data, carbon_results, benchmark_resu
         async_execution=False,
     )
 
+# # Task 2
+# # -----------------------------
 def create_daily_tasks_generation_task(agent, user_data, carbon_results, benchmark_results, completed_tasks):
     """Creates task for generating new daily tasks when user completes 3 out of 5 tasks"""
     
@@ -404,6 +365,8 @@ def create_daily_tasks_generation_task(agent, user_data, carbon_results, benchma
         async_execution=False,
     )
 
+# # Task 3
+# # -----------------------------
 def create_update_planning_task(agent, user_data, carbon_results, benchmark_results, user_update_text):
     """Creates an adaptive planning task based on user's latest update from dashboard"""
     

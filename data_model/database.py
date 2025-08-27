@@ -1,9 +1,7 @@
+# data_model/database.py
 # Functions for user profiles & action logging (Supabase)
-# utils/database.py
 import streamlit as st
 import pandas as pd
-# Functions for user profiles & action logging (Supabase)
-# utils/database.py
 import streamlit as st
 from datetime import date, timedelta
 from supabase import Client

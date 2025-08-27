@@ -150,6 +150,25 @@ def run_analyst_agent(user_id: str):
             if save_success:
                 # Update agent session as completed
                 update_agent_session(agent_session_id, "completed", parsed_results)
+                
+                # ---------------------------------------------------------------------------
+                # 🔄 AUTOMATIC PROFILE MERGING - Trigger when Agent 2 completes successfully
+                # ---------------------------------------------------------------------------
+                try:
+                    from data_model.data_merge_json import merge_json
+                    
+                    # Call the complete workflow function that handles everything
+                    merge_success = merge_json(user_id)
+                    
+                    if merge_success:
+                        st.success("🎉 Complete profile with scores saved successfully!")
+                    else:
+                        st.warning("⚠️ Profile merging failed - check logs for details")
+                        
+                except Exception as merge_error:
+                    st.error(f"❌ Error during profile merging: {str(merge_error)}")
+                    # Don't fail the whole process if merging fails
+                # ---------------------------------------------------------------------------
                 return True
             else:
                 update_agent_session(agent_session_id, "failed")
@@ -165,7 +184,7 @@ def run_analyst_agent(user_id: str):
             update_agent_session(agent_session_id, "failed")
         return False
 
-# =========================== End of run_analyst_workflow() ===========================
+# =========================== End of agents function calls ===========================
 
 # Page configuration
 st.set_page_config(

@@ -1,4 +1,34 @@
 # agent/models.py
+"""
+This module defines Pydantic data models for EcoAction AI agents. It structures user profile data, carbon footprint analysis, and legacy Q&A formats, enabling robust validation and serialization for agent communication and downstream analytics.
+Classes:
+    Demographics: Captures user's basic demographic and household information.
+    DietInfo: Represents dietary habits and food waste patterns.
+    TransportationInfo: Details primary transportation modes and commute patterns.
+    EnergyUsage: Describes home energy sources and conservation habits.
+    LifestyleHabits: Aggregates diet, transportation, and energy usage data.
+    ConsumptionPatterns: Summarizes shopping, plastic use, and recycling behaviors.
+    PsychographicInsights: Lists motivations, barriers, and goals for sustainability.
+    ProfilerAgentOutput: Output schema for Agent 1 (Profiler), including narrative and actionable levers.
+    CategoryBreakdown: Annual carbon emissions by category.
+    RegionalComparison: Compares user emissions to local/regional averages.
+    KeyLeverValidation: Validates impact of suggested carbon reduction levers.
+    PsychographicInsight: Personalized insight based on user psychology.
+    AnalystAgentOutput: Output schema for Agent 2 (Analyst), including scores, breakdowns, and insights.
+    FollowUpQuestion: Legacy model for follow-up questions.
+    QuestionAnswer: Legacy model for Q&A responses.
+    EnrichedUserData: Aggregates all user data, including analysis and Q&A.
+Functions:
+    validate_profiler_output(json_data: dict) -> ProfilerAgentOutput:
+        Validates and parses profiler agent output using Pydantic models.
+    validate_analyst_output(json_data: dict) -> AnalystAgentOutput:
+        Validates and parses analyst agent output using Pydantic models.
+    validate_enriched_user_data(json_data: dict) -> EnrichedUserData:
+        Validates and parses complete enriched user data using Pydantic models.
+"""
+#
+# This file is responsible for 
+#
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 

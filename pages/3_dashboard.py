@@ -23,7 +23,7 @@ from data_model.database import (
     get_daily_tasks,
     get_supabase
 )
-from agent.crew import run_update_planning_workflow, run_daily_tasks_generation_workflow
+from agent.crew import run_update_planning_workflow, run_daily_tasks_generation_workflow, run_planner_workflow
 
 # Page configuration
 st.set_page_config(
@@ -428,8 +428,268 @@ if user:
         
         st.markdown("---")
         
+        # Feedback Section - Two-Tiered Memory System
+        st.subheader("💬 Customize Your Plan")
+        
+        # Import feedback functions
+        from data_model.database import (
+            get_current_week_feedback, 
+            get_user_feedback_history, 
+            save_feedback_and_process
+        )
+        from agent.crew import run_feedback_aware_planning_workflow
+        
+        # Display current feedback status
+        current_feedback = get_current_week_feedback(user.id)
+        feedback_history = get_user_feedback_history(user.id, limit=2)
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%); 
+                        border-radius: 15px; padding: 1.5rem; margin-bottom: 1rem;">
+                <h4 style="color: #2E7D32; margin-bottom: 1rem;">🎯 Personalize Your Challenges</h4>
+                <p style="color: #388E3C; margin-bottom: 0.5rem;">
+                    Tell us how we can improve your challenges! Your feedback helps our AI create better recommendations.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Feedback input
+            feedback_text = st.text_area(
+                "Share your thoughts:",
+                placeholder="Examples:\n• These challenges are too hard\n• I want more money-saving tips\n• Give me more home-based tasks\n• I don't have a car, focus on other areas",
+                height=100,
+                help="Your feedback helps our AI adapt your challenges to your preferences and constraints."
+            )
+            
+            col_submit, col_regenerate = st.columns([1, 1])
+            
+            with col_submit:
+                if st.button("💾 Save Feedback", type="primary"):
+                    if feedback_text.strip():
+                        with st.spinner("Processing your feedback..."):
+                            success = save_feedback_and_process(user.id, feedback_text)
+                            if success:
+                                st.success("✅ Feedback saved! Use 'Regenerate Plan' to apply changes.")
+                                st.rerun()
+                            else:
+                                st.error("❌ Failed to save feedback. Please try again.")
+                    else:
+                        st.warning("Please enter some feedback before saving.")
+            
+            with col_regenerate:
+                if st.button("🔄 Regenerate Plan", type="secondary"):
+                    if current_feedback and current_feedback.get('feedback_summary'):
+                        with st.spinner("🤖 Creating personalized plan based on your feedback..."):
+                            try:
+                                # Run feedback-aware planning workflow
+                                results = run_feedback_aware_planning_workflow(user.id)
+                                
+                                if results and hasattr(results, 'raw'):
+                                    # Parse and save the new plan
+                                    import json
+                                    import re
+                                    
+                                    raw_output = str(results.raw)
+                                    print(f"🐛 Debug - Raw AI output (feedback): {raw_output[:500]}...")  # Debug info
+                                    
+                                    # More robust JSON extraction (same function as above)
+                                    def extract_and_parse_json(text):
+                                        """Extract and parse JSON from AI response with multiple fallback strategies"""
+                                        
+                                        # Strategy 1: Look for complete JSON object
+                                        json_pattern = r'\{(?:[^{}]|{[^{}]*})*\}'
+                                        matches = re.findall(json_pattern, text, re.DOTALL)
+                                        
+                                        for match in matches:
+                                            try:
+                                                return json.loads(match)
+                                            except json.JSONDecodeError:
+                                                continue
+                                        
+                                        # Strategy 2: Find JSON between specific markers
+                                        start_markers = ['{', '```json\n{', '```\n{']
+                                        end_markers = ['}', '}\n```', '}\n```']
+                                        
+                                        for start_marker, end_marker in zip(start_markers, end_markers):
+                                            start_idx = text.find(start_marker)
+                                            if start_idx != -1:
+                                                end_idx = text.rfind(end_marker)
+                                                if end_idx > start_idx:
+                                                    json_candidate = text[start_idx:end_idx + len(end_marker.rstrip())]
+                                                    try:
+                                                        return json.loads(json_candidate)
+                                                    except json.JSONDecodeError:
+                                                        continue
+                                        
+                                        # Strategy 3: Try to fix common JSON issues
+                                        # Remove markdown code blocks
+                                        cleaned = re.sub(r'```json\s*', '', text)
+                                        cleaned = re.sub(r'```\s*', '', cleaned)
+                                        
+                                        # Find the largest JSON-like structure
+                                        json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+                                        if json_match:
+                                            json_text = json_match.group(0)
+                                            
+                                            # Try to fix common issues
+                                            # Fix trailing commas
+                                            json_text = re.sub(r',(\s*[}\]])', r'\1', json_text)
+                                            
+                                            try:
+                                                return json.loads(json_text)
+                                            except json.JSONDecodeError:
+                                                pass
+                                        
+                                        return None
+                                    
+                                    # Extract JSON using robust method
+                                    new_plan = extract_and_parse_json(raw_output)
+                                    
+                                    if new_plan:
+                                        # Save the new plan
+                                        from data_model.database import save_weekly_plan_results, create_agent_session
+                                        session_id = create_agent_session(user.id, "feedback_planning", "Feedback-aware planning")
+                                        save_weekly_plan_results(user.id, session_id, new_plan)
+                                        
+                                        st.success("✅ Your plan has been updated based on your feedback!")
+                                        st.balloons()
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Failed to extract valid JSON from AI response")
+                                        with st.expander("🔍 Debug: View Raw AI Output"):
+                                            st.text_area("Raw output for debugging:", raw_output, height=300)
+                                else:
+                                    st.error("Failed to generate new plan")
+                                    
+                            except Exception as e:
+                                st.error(f"Error regenerating plan: {str(e)}")
+                    else:
+                        st.info("💡 Please provide feedback first, then regenerate your plan.")
+        
+        with col2:
+            # Display feedback history
+            if feedback_history:
+                st.markdown("""
+                <div style="background: #F3E5F5; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+                    <h5 style="color: #7B1FA2; margin-bottom: 0.5rem;">📝 Recent Feedback</h5>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                for i, feedback in enumerate(feedback_history[:2]):
+                    st.markdown(f"""
+                    <div style="background: white; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.5rem; 
+                                border-left: 4px solid #9C27B0; font-size: 0.85rem;">
+                        <strong style="color: #7B1FA2;">Week of {feedback['week_of']}:</strong><br>
+                        <span style="color: #424242;">{feedback['summary']}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="background: #FFF3E0; border-radius: 10px; padding: 1rem; text-align: center;">
+                    <div style="color: #E65100; font-size: 0.9rem;">
+                        💡 No feedback yet<br>
+                        <small>Share your thoughts to personalize your experience!</small>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
         # Weekly action plan section
-        st.subheader("🗓️ Your Personalized Weekly Plan")
+        plan_header_col1, plan_header_col2 = st.columns([3, 1])
+        
+        with plan_header_col1:
+            st.subheader("🗓️ Your Personalized Weekly Plan")
+        
+        with plan_header_col2:
+            if st.button("🔄 Regenerate Plan", type="secondary", help="Generate a new weekly plan without providing feedback"):
+                with st.spinner("🤖 Agent 3 is creating a fresh weekly plan for you..."):
+                    try:
+                        # Run the basic planner workflow to generate a new plan
+                        new_plan_results = run_planner_workflow(user.id)
+                        
+                        if new_plan_results and hasattr(new_plan_results, 'raw'):
+                            # Parse and save the new plan
+                            import json
+                            import re
+                            
+                            raw_output = str(new_plan_results.raw)
+                            print(f"🐛 Debug - Raw AI output: {raw_output[:500]}...")  # Debug info
+                            
+                            # More robust JSON extraction
+                            def extract_and_parse_json(text):
+                                """Extract and parse JSON from AI response with multiple fallback strategies"""
+                                
+                                # Strategy 1: Look for complete JSON object
+                                json_pattern = r'\{(?:[^{}]|{[^{}]*})*\}'
+                                matches = re.findall(json_pattern, text, re.DOTALL)
+                                
+                                for match in matches:
+                                    try:
+                                        return json.loads(match)
+                                    except json.JSONDecodeError:
+                                        continue
+                                
+                                # Strategy 2: Find JSON between specific markers
+                                start_markers = ['{', '```json\n{', '```\n{']
+                                end_markers = ['}', '}\n```', '}\n```']
+                                
+                                for start_marker, end_marker in zip(start_markers, end_markers):
+                                    start_idx = text.find(start_marker)
+                                    if start_idx != -1:
+                                        end_idx = text.rfind(end_marker)
+                                        if end_idx > start_idx:
+                                            json_candidate = text[start_idx:end_idx + len(end_marker.rstrip())]
+                                            try:
+                                                return json.loads(json_candidate)
+                                            except json.JSONDecodeError:
+                                                continue
+                                
+                                # Strategy 3: Try to fix common JSON issues
+                                # Remove markdown code blocks
+                                cleaned = re.sub(r'```json\s*', '', text)
+                                cleaned = re.sub(r'```\s*', '', cleaned)
+                                
+                                # Find the largest JSON-like structure
+                                json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+                                if json_match:
+                                    json_text = json_match.group(0)
+                                    
+                                    # Try to fix common issues
+                                    # Fix trailing commas
+                                    json_text = re.sub(r',(\s*[}\]])', r'\1', json_text)
+                                    
+                                    try:
+                                        return json.loads(json_text)
+                                    except json.JSONDecodeError:
+                                        pass
+                                
+                                return None
+                            
+                            # Extract JSON using robust method
+                            new_plan = extract_and_parse_json(raw_output)
+                            
+                            if new_plan:
+                                # Save the new plan
+                                from data_model.database import save_weekly_plan_results, create_agent_session
+                                session_id = create_agent_session(user.id, "regenerate_planning", "Fresh plan generation")
+                                save_weekly_plan_results(user.id, session_id, new_plan)
+                                
+                                st.success("✅ Your weekly plan has been regenerated!")
+                                st.balloons()
+                                st.rerun()
+                            else:
+                                st.error("❌ Failed to extract valid JSON from AI response")
+                                with st.expander("🔍 Debug: View Raw AI Output"):
+                                    st.text_area("Raw output for debugging:", raw_output, height=300)
+                        else:
+                            st.error("Failed to generate new plan")
+                            
+                    except Exception as e:
+                        st.error(f"Error regenerating plan: {str(e)}")
         
         # Check if we have planner results
         planner_data = agent_results.get('weekly_plan_data')
@@ -613,10 +873,8 @@ if user:
                                             user_onboarding_data = get_user_onboarding_data(user.id)
                                             
                                             daily_results = run_daily_tasks_generation_workflow(
-                                                user_onboarding_data, 
-                                                scoring_results, 
-                                                planner_data, 
-                                                completed_count
+                                                user.id, 
+                                                [{'completed_count': completed_count}]  # Pass completed tasks info
                                             )
                                             
                                             if daily_results and hasattr(daily_results, 'raw'):
@@ -649,37 +907,15 @@ if user:
             with col2:
                 if st.button("🎯 Generate Challenges", type="primary", use_container_width=True):
                     with st.spinner("🤖 Agent 3 is creating your personalized weekly challenges..."):
-                        from data_model.database import get_user_onboarding_data, save_agent_results, create_agent_session, update_agent_session
-                        from agent.agents import create_planner_agent
-                        from agent.tasks import create_weekly_planning_task
-                        from crewai import Crew, Process
+                        from data_model.database import save_agent_results, create_agent_session, update_agent_session
+                        from agent.crew import run_planner_workflow
                         
                         try:
-                            # Get user data
-                            user_onboarding_data = get_user_onboarding_data(user.id)
-                            
                             # Create agent session for planner
                             agent_session_id = create_agent_session(user.id, "weekly_planning", "Generate challenges workflow execution from dashboard")
                             
-                            # Create planner agent and task
-                            planner_agent = create_planner_agent()
-                            planning_task = create_weekly_planning_task(
-                                planner_agent, 
-                                user_onboarding_data, 
-                                calculation_data, 
-                                benchmark_data
-                            )
-                            
-                            # Create and run planner crew
-                            planner_crew = Crew(
-                                agents=[planner_agent],
-                                tasks=[planning_task],
-                                process=Process.sequential,
-                                verbose=False,
-                                memory=False
-                            )
-                            
-                            planner_results = planner_crew.kickoff()
+                            # Run the planner workflow
+                            planner_results = run_planner_workflow(user.id)
                             
                             if planner_results and hasattr(planner_results, 'tasks_output') and planner_results.tasks_output:
                                 try:
@@ -765,9 +1001,7 @@ if user:
                         
                         # Run Agent 3 update workflow
                         update_results = run_update_planning_workflow(
-                            user_onboarding_data,
-                            calculation_data,
-                            benchmark_data,
+                            user.id,
                             user_update
                         )
                         
@@ -811,6 +1045,105 @@ if user:
                         st.error(f"❌ Error running Agent 3 update: {str(e)}")
             else:
                 st.warning("⚠️ Please enter some feedback before updating your plan.")
+        
+        # Add standalone regenerate section
+        st.markdown("---")
+        st.subheader("🔄 Quick Plan Refresh")
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.info("🎲 Want fresh challenges without providing feedback? Generate a completely new weekly plan!")
+        
+        with col2:
+            if st.button("🔄 Generate New Plan", type="secondary", use_container_width=True):
+                with st.spinner("🤖 Agent 3 is creating fresh challenges for you..."):
+                    try:
+                        # Run the basic planner workflow to generate a new plan
+                        new_plan_results = run_planner_workflow(user.id)
+                        
+                        if new_plan_results and hasattr(new_plan_results, 'raw'):
+                            # Parse and save the new plan
+                            import json
+                            import re
+                            
+                            raw_output = str(new_plan_results.raw)
+                            print(f"🐛 Debug - Raw AI output (standalone): {raw_output[:500]}...")  # Debug info
+                            
+                            # More robust JSON extraction (same function as above)
+                            def extract_and_parse_json(text):
+                                """Extract and parse JSON from AI response with multiple fallback strategies"""
+                                
+                                # Strategy 1: Look for complete JSON object
+                                json_pattern = r'\{(?:[^{}]|{[^{}]*})*\}'
+                                matches = re.findall(json_pattern, text, re.DOTALL)
+                                
+                                for match in matches:
+                                    try:
+                                        return json.loads(match)
+                                    except json.JSONDecodeError:
+                                        continue
+                                
+                                # Strategy 2: Find JSON between specific markers
+                                start_markers = ['{', '```json\n{', '```\n{']
+                                end_markers = ['}', '}\n```', '}\n```']
+                                
+                                for start_marker, end_marker in zip(start_markers, end_markers):
+                                    start_idx = text.find(start_marker)
+                                    if start_idx != -1:
+                                        end_idx = text.rfind(end_marker)
+                                        if end_idx > start_idx:
+                                            json_candidate = text[start_idx:end_idx + len(end_marker.rstrip())]
+                                            try:
+                                                return json.loads(json_candidate)
+                                            except json.JSONDecodeError:
+                                                continue
+                                
+                                # Strategy 3: Try to fix common JSON issues
+                                # Remove markdown code blocks
+                                cleaned = re.sub(r'```json\s*', '', text)
+                                cleaned = re.sub(r'```\s*', '', cleaned)
+                                
+                                # Find the largest JSON-like structure
+                                json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+                                if json_match:
+                                    json_text = json_match.group(0)
+                                    
+                                    # Try to fix common issues
+                                    # Fix trailing commas
+                                    json_text = re.sub(r',(\s*[}\]])', r'\1', json_text)
+                                    
+                                    try:
+                                        return json.loads(json_text)
+                                    except json.JSONDecodeError:
+                                        pass
+                                
+                                return None
+                            
+                            # Extract JSON using robust method
+                            new_plan = extract_and_parse_json(raw_output)
+                            
+                            if new_plan:
+                                # Save the new plan
+                                from data_model.database import save_weekly_plan_results, create_agent_session, save_agent_results, update_agent_session
+                                
+                                # Create session and save results
+                                session_id = create_agent_session(user.id, "fresh_planning", "Fresh weekly plan generation")
+                                save_agent_results(user.id, 'planner', new_plan, session_id)
+                                update_agent_session(session_id, "completed", new_plan)
+                                save_weekly_plan_results(user.id, session_id, new_plan)
+                                
+                                st.success("✅ Fresh weekly plan generated!")
+                                st.balloons()
+                                st.rerun()
+                            else:
+                                st.error("❌ Failed to extract valid JSON from AI response")
+                                with st.expander("🔍 Debug: View Raw AI Output"):
+                                    st.text_area("Raw output for debugging:", raw_output, height=300)
+                        else:
+                            st.error("Failed to generate new plan")
+                            
+                    except Exception as e:
+                        st.error(f"Error generating fresh plan: {str(e)}")
     
     else:
         # No carbon analysis results available yet - show waiting message
@@ -843,25 +1176,8 @@ if user:
                         # Create agent session for planner
                         agent_session_id = create_agent_session(user.id, "weekly_planning", "Initial challenges generation from dashboard")
                         
-                        # Create planner agent and task with basic data
-                        planner_agent = create_planner_agent()
-                        planning_task = create_weekly_planning_task(
-                            planner_agent, 
-                            user_onboarding_data, 
-                            {}, # Empty calculation data
-                            {}  # Empty benchmark data
-                        )
-                        
-                        # Create and run planner crew
-                        planner_crew = Crew(
-                            agents=[planner_agent],
-                            tasks=[planning_task],
-                            process=Process.sequential,
-                            verbose=False,
-                            memory=False
-                        )
-                        
-                        planner_results = planner_crew.kickoff()
+                        # Run the planner workflow
+                        planner_results = run_planner_workflow(user.id)
                         
                         if planner_results and hasattr(planner_results, 'tasks_output') and planner_results.tasks_output:
                             try:

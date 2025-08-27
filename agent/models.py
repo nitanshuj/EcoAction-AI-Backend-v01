@@ -159,9 +159,319 @@ def validate_analyst_output(json_data: dict) -> AnalystAgentOutput:
     except Exception as e:
         raise ValueError(f"Invalid analyst output format: {str(e)}")
 
-def validate_enriched_user_data(json_data: dict) -> EnrichedUserData:
+# Agent 3 (Planner) Output Models
+class Challenge(BaseModel):
+    id: str = Field(..., description="Unique identifier for the challenge")
+    title: str = Field(..., description="Catchy, actionable title")
+    description: str = Field(..., description="Specific action description")
+    difficulty: str = Field(..., description="Difficulty level: easy, medium, or hard")
+    category: str = Field(..., description="Category: diet/transport/energy/waste/consumption")
+    steps: List[str] = Field(..., description="Step-by-step instructions")
+    co2_savings_kg: float = Field(..., description="Estimated CO2 savings in kg")
+    time_required: str = Field(..., description="Time commitment required")
+    deadline: str = Field(..., description="When to complete by")
+    success_metrics: str = Field(..., description="How to measure completion")
+    motivation: str = Field(..., description="Why this matters for the user")
+    completed: bool = Field(default=False, description="Completion status")
+    
+    class Config:
+        extra = "forbid"  # Strict validation
+        validate_assignment = True
+
+class PlannerAgentOutput(BaseModel):
+    week_focus: str = Field(..., description="Main theme for the week")
+    priority_area: str = Field(..., description="Top priority emission category")
+    challenges: List[Challenge] = Field(..., description="Exactly 6 challenges (3 easy + 2 medium + 1 hard)")
+    total_potential_savings: float = Field(..., description="Total potential CO2 savings in kg")
+    motivation_message: str = Field(..., description="Encouraging message tailored to user's goals")
+    
+    class Config:
+        extra = "forbid"  # Strict validation
+        validate_assignment = True
+    
+    @classmethod
+    def validate_challenge_structure(cls, challenges_data):
+        """Validate challenge count and difficulty distribution"""
+        if not isinstance(challenges_data, list):
+            raise ValueError("Challenges must be a list")
+        
+        if len(challenges_data) != 6:
+            raise ValueError(f"Must have exactly 6 challenges, got {len(challenges_data)}")
+        
+        difficulty_counts = {"easy": 0, "medium": 0, "hard": 0}
+        
+        for i, challenge in enumerate(challenges_data):
+            if not isinstance(challenge, dict):
+                raise ValueError(f"Challenge {i+1} must be a dictionary")
+            
+            difficulty = challenge.get('difficulty', '').lower().strip()
+            if difficulty not in difficulty_counts:
+                raise ValueError(f"Challenge {i+1} has invalid difficulty '{difficulty}'. Must be 'easy', 'medium', or 'hard'")
+            
+            difficulty_counts[difficulty] += 1
+        
+        if difficulty_counts["easy"] != 3:
+            raise ValueError(f"Must have exactly 3 easy challenges, got {difficulty_counts['easy']}")
+        if difficulty_counts["medium"] != 2:
+            raise ValueError(f"Must have exactly 2 medium challenges, got {difficulty_counts['medium']}")
+        if difficulty_counts["hard"] != 1:
+            raise ValueError(f"Must have exactly 1 hard challenge, got {difficulty_counts['hard']}")
+        
+        return challenges_data
+
+class FeedbackAwarePlannerOutput(BaseModel):
+    week_focus: str = Field(..., description="Adapted theme for this week based on user feedback")
+    priority_area: str = Field(..., description="Top priority emission category")
+    challenges: List[Challenge] = Field(..., description="Exactly 6 challenges adapted to feedback")
+    total_potential_savings: float = Field(..., description="Total potential CO2 savings in kg")
+    motivation_message: str = Field(..., description="Personalized encouragement addressing feedback")
+    feedback_adaptation_notes: str = Field(..., description="How the plan was adapted based on feedback")
+    
+    class Config:
+        extra = "forbid"  # Strict validation
+        validate_assignment = True
+
+class DailyTask(BaseModel):
+    id: str = Field(..., description="Unique identifier for the daily task")
+    title: str = Field(..., description="Short daily action title (max 80 chars)")
+    action: str = Field(..., description="Simple daily action to take (max 80 chars)")
+    why: str = Field(..., description="Why this daily habit matters (max 80 chars)")
+    steps: List[str] = Field(..., description="Quick steps to complete")
+    co2_savings: float = Field(..., description="Daily CO2 savings in kg")
+    difficulty: str = Field(default="easy", description="Difficulty level")
+    task_type: str = Field(default="daily", description="Task type")
+    frequency: str = Field(default="daily", description="Frequency of task")
+    completed: bool = Field(default=False, description="Completion status")
+    
+    class Config:
+        extra = "forbid"  # Strict validation
+        validate_assignment = True
+
+class DailyTasksOutput(BaseModel):
+    congratulations_message: str = Field(..., description="Celebration message for completing tasks")
+    daily_focus: str = Field(..., description="Theme for these daily habits")
+    new_daily_tasks: List[DailyTask] = Field(..., description="Exactly 3 new daily tasks")
+    motivation: str = Field(..., description="Encouragement for daily habit building")
+    
+    class Config:
+        extra = "forbid"  # Strict validation
+        validate_assignment = True
+    
+    @classmethod
+    def validate_task_structure(cls, tasks_data):
+        """Validate that there are exactly 3 daily tasks"""
+        if not isinstance(tasks_data, list):
+            raise ValueError("Tasks must be a list")
+        
+        if len(tasks_data) != 3:
+            raise ValueError(f"Must have exactly 3 daily tasks, got {len(tasks_data)}")
+        
+        return tasks_data
+
+class UpdatePlannerOutput(BaseModel):
+    update_analysis: str = Field(..., description="Summary of what user shared and implications")
+    planning_adjustments: str = Field(..., description="How the plan was modified based on their update")
+    week_focus: str = Field(..., description="Adapted theme for this week based on user feedback")
+    challenges: List[Challenge] = Field(..., description="Exactly 6 updated challenges")
+    total_potential_savings: float = Field(..., description="Total potential CO2 savings in kg")
+    motivation_message: str = Field(..., description="Personalized encouragement addressing their update")
+    future_planning_notes: str = Field(..., description="Insights to remember for next planning")
+    
+    class Config:
+        extra = "forbid"  # Strict validation
+        validate_assignment = True
+
+import json
+import re
+from typing import Union
+
+def clean_json_string(raw_json: str) -> str:
+    """Clean JSON string by removing common formatting issues"""
+    # Remove markdown code blocks
+    raw_json = re.sub(r'```json\s*', '', raw_json)
+    raw_json = re.sub(r'```\s*', '', raw_json)
+    
+    # Remove trailing commas before closing brackets
+    raw_json = re.sub(r',\s*}', '}', raw_json)
+    raw_json = re.sub(r',\s*]', ']', raw_json)
+    
+    # Don't escape newlines if they're already in valid JSON format
+    # Just strip and return
+    return raw_json.strip()
+
+def extract_json_from_text(text: str) -> dict:
+    """Extract JSON object from text using multiple strategies"""
+    
+    # Strategy 1: Try direct JSON parsing first
+    try:
+        cleaned = clean_json_string(text)
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 2: Find and extract JSON from markdown code blocks
+    markdown_patterns = [
+        r'```json\s*(\{.*?\})\s*```',  # ```json ... ```
+        r'```\s*(\{.*?\})\s*```',      # ``` ... ```
+    ]
+    
+    for pattern in markdown_patterns:
+        matches = re.findall(pattern, text, re.DOTALL)
+        for match in matches:
+            try:
+                cleaned = clean_json_string(match)
+                return json.loads(cleaned)
+            except json.JSONDecodeError:
+                continue
+    
+    # Strategy 3: Find JSON blocks with nested braces (more aggressive)
+    json_patterns = [
+        r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # Single level nesting
+        r'\{.*?\}',  # Simple greedy match
+    ]
+    
+    # For complex nested JSON, use a different approach
+    brace_count = 0
+    start_idx = -1
+    
+    for i, char in enumerate(text):
+        if char == '{':
+            if brace_count == 0:
+                start_idx = i
+            brace_count += 1
+        elif char == '}':
+            brace_count -= 1
+            if brace_count == 0 and start_idx != -1:
+                # Found complete JSON object
+                json_text = text[start_idx:i+1]
+                try:
+                    cleaned = clean_json_string(json_text)
+                    return json.loads(cleaned)
+                except json.JSONDecodeError:
+                    continue
+    
+    # Fallback to regex patterns if brace counting fails
+    for pattern in json_patterns:
+        matches = re.findall(pattern, text, re.DOTALL)
+        for match in matches:
+            try:
+                cleaned = clean_json_string(match)
+                return json.loads(cleaned)
+            except json.JSONDecodeError:
+                continue
+    
+    raise ValueError(f"Could not extract valid JSON from text. Preview: {text[:200]}...")
+
+def validate_profiler_output(json_data: Union[dict, str]) -> ProfilerAgentOutput:
+    """Validate the profiler agent output using Pydantic"""
+    try:
+        # If it's already a dictionary, use it directly
+        if isinstance(json_data, dict):
+            data = json_data
+        else:
+            # Only extract from text if it's a string
+            data = extract_json_from_text(json_data)
+        
+        return ProfilerAgentOutput.model_validate(data)
+    except Exception as e:
+        raise ValueError(f"Invalid profiler output format: {str(e)}")
+
+def validate_analyst_output(json_data: Union[dict, str]) -> AnalystAgentOutput:
+    """Validate the analyst agent output using Pydantic"""
+    try:
+        # If it's already a dictionary, use it directly
+        if isinstance(json_data, dict):
+            data = json_data
+        else:
+            # Only extract from text if it's a string
+            data = extract_json_from_text(json_data)
+        
+        return AnalystAgentOutput.model_validate(data)
+    except Exception as e:
+        raise ValueError(f"Invalid analyst output format: {str(e)}")
+
+def validate_planner_output(json_data: Union[dict, str]) -> PlannerAgentOutput:
+    """Validate the planner agent output using Pydantic with enhanced validation"""
+    try:
+        # If it's already a dictionary, use it directly
+        if isinstance(json_data, dict):
+            data = json_data
+        else:
+            # Only extract from text if it's a string
+            data = extract_json_from_text(json_data)
+        
+        # Pre-validate challenge structure
+        if 'challenges' in data:
+            PlannerAgentOutput.validate_challenge_structure(data['challenges'])
+        
+        return PlannerAgentOutput.model_validate(data)
+    except Exception as e:
+        raise ValueError(f"Invalid planner output format: {str(e)}")
+
+def validate_feedback_aware_output(json_data: Union[dict, str]) -> FeedbackAwarePlannerOutput:
+    """Validate the feedback-aware planner output using Pydantic"""
+    try:
+        # If it's already a dictionary, use it directly
+        if isinstance(json_data, dict):
+            data = json_data
+        else:
+            # Only extract from text if it's a string
+            data = extract_json_from_text(json_data)
+        
+        # Pre-validate challenge structure
+        if 'challenges' in data:
+            PlannerAgentOutput.validate_challenge_structure(data['challenges'])
+        
+        return FeedbackAwarePlannerOutput.model_validate(data)
+    except Exception as e:
+        raise ValueError(f"Invalid feedback-aware planner output format: {str(e)}")
+
+def validate_daily_tasks_output(json_data: Union[dict, str]) -> DailyTasksOutput:
+    """Validate the daily tasks output using Pydantic"""
+    try:
+        # If it's already a dictionary, use it directly
+        if isinstance(json_data, dict):
+            data = json_data
+        else:
+            # Only extract from text if it's a string
+            data = extract_json_from_text(json_data)
+        
+        # Pre-validate task structure
+        if 'new_daily_tasks' in data:
+            DailyTasksOutput.validate_task_structure(data['new_daily_tasks'])
+        
+        return DailyTasksOutput.model_validate(data)
+    except Exception as e:
+        raise ValueError(f"Invalid daily tasks output format: {str(e)}")
+
+def validate_update_planner_output(json_data: Union[dict, str]) -> UpdatePlannerOutput:
+    """Validate the update planner output using Pydantic"""
+    try:
+        # If it's already a dictionary, use it directly
+        if isinstance(json_data, dict):
+            data = json_data
+        else:
+            # Only extract from text if it's a string
+            data = extract_json_from_text(json_data)
+        
+        # Pre-validate challenge structure
+        if 'challenges' in data:
+            PlannerAgentOutput.validate_challenge_structure(data['challenges'])
+        
+        return UpdatePlannerOutput.model_validate(data)
+    except Exception as e:
+        raise ValueError(f"Invalid update planner output format: {str(e)}")
+
+def validate_enriched_user_data(json_data: Union[dict, str]) -> EnrichedUserData:
     """Validate the complete enriched user data using Pydantic"""
     try:
-        return EnrichedUserData.model_validate(json_data)
+        # If it's already a dictionary, use it directly
+        if isinstance(json_data, dict):
+            data = json_data
+        else:
+            # Only extract from text if it's a string
+            data = extract_json_from_text(json_data)
+        
+        return EnrichedUserData.model_validate(data)
     except Exception as e:
         raise ValueError(f"Invalid enriched user data format: {str(e)}")

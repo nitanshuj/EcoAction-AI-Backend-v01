@@ -1091,3 +1091,300 @@ def get_profiler_results(user_id: str):
     except Exception as e:
         st.error(f"Error fetching profiler results: {str(e)}")
         return None
+
+
+# ====================================================================
+# FEEDBACK SYSTEM FUNCTIONS - Two-Tiered Memory Implementation
+# ====================================================================
+
+def save_user_feedback(user_id: str, raw_feedback: str, feedback_summary: str = None) -> bool:
+    """
+    Save user feedback to the weekly_plans table for the current week.
+    
+    Args:
+        user_id (str): The user's UUID
+        raw_feedback (str): Raw feedback text from user
+        feedback_summary (str): Optional pre-processed summary
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        supabase = get_supabase()
+        
+        # Calculate current week
+        from datetime import date, timedelta
+        today = date.today()
+        days_since_monday = today.weekday()
+        week_start = today - timedelta(days=days_since_monday)
+        
+        # Get the latest weekly plan for this user
+        plan_response = supabase.table('weekly_plans')\
+            .select('id')\
+            .eq('user_id', user_id)\
+            .eq('week_of', week_start.isoformat())\
+            .order('created_at', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if plan_response.data and len(plan_response.data) > 0:
+            # Update existing weekly plan with feedback
+            plan_id = plan_response.data[0]['id']
+            
+            update_data = {
+                'user_feedback': raw_feedback,
+                'updated_at': 'now()'
+            }
+            
+            if feedback_summary:
+                update_data['feedback_summary'] = feedback_summary
+            
+            response = supabase.table('weekly_plans')\
+                .update(update_data)\
+                .eq('id', plan_id)\
+                .execute()
+                
+            return len(response.data) > 0
+        else:
+            # Create new weekly plan entry with feedback
+            insert_data = {
+                'user_id': user_id,
+                'week_of': week_start.isoformat(),
+                'user_feedback': raw_feedback,
+                'suggestions': {}  # Empty suggestions for now
+            }
+            
+            if feedback_summary:
+                insert_data['feedback_summary'] = feedback_summary
+                
+            response = supabase.table('weekly_plans')\
+                .insert(insert_data)\
+                .execute()
+                
+            return len(response.data) > 0
+        
+    except Exception as e:
+        st.error(f"Error saving user feedback: {str(e)}")
+        return False
+
+
+def process_feedback_text(raw_feedback: str) -> str:
+    """
+    Process raw user feedback into a structured summary using a lightweight LLM call.
+    This is Step 1 of the feedback system - the "Translator".
+    
+    Args:
+        raw_feedback (str): Raw feedback text from user
+        
+    Returns:
+        str: Structured feedback summary for agent memory
+    """
+    try:
+        import os
+        from openai import OpenAI
+        
+        # Initialize OpenAI client with AIMLAPI settings
+        client = OpenAI(
+            api_key=os.getenv("AI_ML_API_KEY"),
+            base_url="https://api.aimlapi.com/v1"
+        )
+        
+        # Lightweight prompt to convert feedback to structured summary
+        prompt = f"""Summarize the following user feedback into a concise, third-person statement for an AI coach's memory. Extract key preferences, difficulties, and motivations. Keep it under 50 words.
+
+User feedback: "{raw_feedback}"
+
+Summary format: "User [specific preference/difficulty]. [Key motivation]. [Preferred action type]."
+
+Examples:
+- "User cannot do transport challenges due to not owning a car. Prefers easier, home-based tasks."
+- "User finds challenges too difficult and is motivated by saving money. Prefers daily tasks."
+- "User wants more variety in diet challenges. Motivated by health benefits. Dislikes repetitive tasks."
+
+Summary:"""
+
+        response = client.chat.completions.create(
+            model="openai/gpt-4.1-nano-2025-04-14",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=60,  # Keep it very short and cheap
+            temperature=0.3
+        )
+        
+        summary = response.choices[0].message.content.strip()
+        
+        # Clean up the summary if needed
+        if summary.startswith('"') and summary.endswith('"'):
+            summary = summary[1:-1]
+            
+        return summary
+        
+    except Exception as e:
+        st.error(f"Error processing feedback text: {str(e)}")
+        # Return a basic fallback summary
+        return f"User provided feedback: {raw_feedback[:50]}{'...' if len(raw_feedback) > 50 else ''}"
+
+
+def get_user_feedback_history(user_id: str, limit: int = 3) -> list:
+    """
+    Get recent feedback history for a user (Tier 2 Memory).
+    Since feedback is stored in suggestions field, we'll extract it from there.
+    
+    Args:
+        user_id (str): The user's UUID
+        limit (int): Number of recent feedback entries to return
+        
+    Returns:
+        list: Recent feedback summaries
+    """
+    try:
+        supabase = get_supabase()
+        
+        response = supabase.table('weekly_plans')\
+            .select('suggestions, week_of, created_at')\
+            .eq('user_id', user_id)\
+            .order('created_at', desc=True)\
+            .limit(limit)\
+            .execute()
+        
+        if response.data:
+            feedback_history = []
+            for item in response.data:
+                suggestions = item.get('suggestions', {})
+                if isinstance(suggestions, dict) and suggestions.get('user_feedback'):
+                    feedback_history.append({
+                        'summary': suggestions.get('feedback_summary', 'User provided feedback'),
+                        'raw_feedback': suggestions.get('user_feedback', ''),
+                        'week_of': item['week_of'],
+                        'date': item['created_at']
+                    })
+            return feedback_history
+        
+        return []
+        
+    except Exception as e:
+        print(f"Error fetching user feedback history: {str(e)}")
+        return []
+
+
+def get_current_week_feedback(user_id: str) -> dict:
+    """
+    Get feedback for the current week if any exists.
+    
+    Args:
+        user_id (str): The user's UUID
+        
+    Returns:
+        dict: Current week feedback data or None
+    """
+    try:
+        supabase = get_supabase()
+        
+        # Calculate current week
+        from datetime import date, timedelta
+        today = date.today()
+        days_since_monday = today.weekday()
+        week_start = today - timedelta(days=days_since_monday)
+        
+        response = supabase.table('weekly_plans')\
+            .select('suggestions')\
+            .eq('user_id', user_id)\
+            .eq('week_of', week_start.isoformat())\
+            .order('created_at', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if response.data and len(response.data) > 0:
+            suggestions = response.data[0].get('suggestions', {})
+            if isinstance(suggestions, dict) and suggestions.get('user_feedback'):
+                return {
+                    'feedback_summary': suggestions.get('feedback_summary', ''),
+                    'user_feedback': suggestions.get('user_feedback', ''),
+                    'suggestions': suggestions
+                }
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error fetching current week feedback: {str(e)}")
+        return None
+
+
+def save_feedback_and_process(user_id: str, raw_feedback: str) -> bool:
+    """
+    Complete feedback workflow: save raw feedback, process it, and update database.
+    This stores feedback in the suggestions field of the current week's plan.
+    
+    Args:
+        user_id (str): The user's UUID
+        raw_feedback (str): Raw feedback text from user
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Step 1: Process the raw feedback into structured summary
+        feedback_summary = process_feedback_text(raw_feedback)
+        
+        # Step 2: Get current week's plan
+        supabase = get_supabase()
+        
+        from datetime import date, timedelta
+        today = date.today()
+        days_since_monday = today.weekday()
+        week_start = today - timedelta(days=days_since_monday)
+        
+        # Try to find existing plan for this week
+        response = supabase.table('weekly_plans')\
+            .select('id, suggestions')\
+            .eq('user_id', user_id)\
+            .eq('week_of', week_start.isoformat())\
+            .order('created_at', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if response.data and len(response.data) > 0:
+            # Update existing plan with feedback
+            plan_id = response.data[0]['id']
+            existing_suggestions = response.data[0].get('suggestions', {})
+            
+            # Add feedback to suggestions
+            if isinstance(existing_suggestions, dict):
+                existing_suggestions['user_feedback'] = raw_feedback
+                existing_suggestions['feedback_summary'] = feedback_summary
+            else:
+                existing_suggestions = {
+                    'user_feedback': raw_feedback,
+                    'feedback_summary': feedback_summary
+                }
+            
+            update_response = supabase.table('weekly_plans')\
+                .update({'suggestions': existing_suggestions})\
+                .eq('id', plan_id)\
+                .execute()
+            
+            success = len(update_response.data) > 0
+        else:
+            # Create new plan entry with feedback
+            insert_response = supabase.table('weekly_plans').insert({
+                'user_id': user_id,
+                'week_of': week_start.isoformat(),
+                'suggestions': {
+                    'user_feedback': raw_feedback,
+                    'feedback_summary': feedback_summary
+                }
+            }).execute()
+            
+            success = len(insert_response.data) > 0
+        
+        if success:
+            print("✅ Feedback saved and processed successfully!")
+        else:
+            print("❌ Failed to save feedback")
+            
+        return success
+        
+    except Exception as e:
+        print(f"❌ Error saving feedback: {str(e)}")
+        return False

@@ -1,6 +1,6 @@
 [
   {
-    "challenge_id": "D001",
+    "challenge_id": "101",
     "description": "Meatless Monday: Avoid eating any meat for the entire day to lower your diet-related emissions.",
     "category": "Diet",
     "type": "Daily",
@@ -9,7 +9,7 @@
     "impact_vector": ["diet", "meat", "vegetarian", "food", "emissions", "health"]
   },
   {
-    "challenge_id": "D002",
+    "challenge_id": "102",
     "description": "Eat Local: Ensure at least one of your meals today consists entirely of locally sourced ingredients (within 100 miles).",
     "category": "Diet",
     "type": "Daily",
@@ -18,7 +18,7 @@
     "impact_vector": ["diet", "local", "food miles", "community", "shopping", "fresh"]
   },
   {
-    "challenge_id": "D003",
+    "challenge_id": "103",
     "description": "Zero Food Waste Meal: Create a meal using ingredients that are close to expiring to prevent them from being wasted.",
     "category": "Diet",
     "type": "Daily",
@@ -27,7 +27,7 @@
     "impact_vector": ["diet", "food waste", "planning", "cooking", "money", "savings"]
   },
   {
-    "challenge_id": "T001",
+    "challenge_id": "104",
     "description": "Eco-Commute: Use public transport, cycle, or walk for your commute today instead of driving a personal car.",
     "category": "Transport",
     "type": "Daily",
@@ -36,7 +36,7 @@
     "impact_vector": ["transport", "commute", "car", "emissions", "public transport", "cycling", "health"]
   },
   {
-    "challenge_id": "T002",
+    "challenge_id": "105",
     "description": "Trip Chaining: Combine at least three separate errands into a single, efficient trip to reduce mileage.",
     "category": "Transport",
     "type": "Daily",
@@ -45,7 +45,7 @@
     "impact_vector": ["transport", "car", "planning", "efficiency", "money", "fuel"]
   },
   {
-    "challenge_id": "E001",
+    "challenge_id": "106",
     "description": "Unplug Power Vampires: Identify and unplug 5 devices that consume standby power when not in use (e.g., chargers, TVs).",
     "category": "Energy",
     "type": "Daily",
@@ -54,7 +54,7 @@
     "impact_vector": ["energy", "electricity", "household", "unplug", "money", "bills", "savings"]
   },
   {
-    "challenge_id": "E002",
+    "challenge_id": "107",
     "description": "Natural Light Hour: For one hour during the day when you would normally have lights on, use only natural light.",
     "category": "Energy",
     "type": "Daily",
@@ -63,7 +63,7 @@
     "impact_vector": ["energy", "electricity", "household", "lighting", "bills", "health"]
   },
   {
-    "challenge_id": "W001",
+    "challenge_id": "108",
     "description": "No Single-Use Coffee Cups: For the entire week, use a reusable cup for all your hot beverage purchases.",
     "category": "Waste",
     "type": "Weekly",
@@ -72,7 +72,7 @@
     "impact_vector": ["waste", "plastic", "single-use", "beverage", "coffee", "shopping"]
   },
   {
-    "challenge_id": "W002",
+    "challenge_id": "109",
     "description": "Waste Audit Week: Keep a log of all the non-recyclable waste you produce this week to identify your main sources.",
     "category": "Waste",
     "type": "Weekly",
@@ -81,8 +81,8 @@
     "impact_vector": ["waste", "plastic", "audit", "planning", "awareness", "household"]
   },
   {
-    "challenge_id": "C001",
-    "description": "30-Day Purchase Pause: For one week, commit to not buying any new non-essential items (e.g., clothing, electronics, decor).",
+    "challenge_id": "110",
+    "description": "Purchase Pause Week: For one week, commit to not buying any new non-essential items (e.g., clothing, electronics, decor).",
     "category": "Consumption",
     "type": "Weekly",
     "difficulty": "Medium",
@@ -90,7 +90,7 @@
     "impact_vector": ["consumption", "shopping", "fast fashion", "minimalism", "money", "savings"]
   },
   {
-    "challenge_id": "C002",
+    "challenge_id": "111",
     "description": "Second-Hand First: If you need to acquire an item this week, try to find it second-hand before buying new.",
     "category": "Consumption",
     "type": "Weekly",
@@ -99,7 +99,7 @@
     "impact_vector": ["consumption", "shopping", "second-hand", "circular economy", "money", "savings"]
   },
   {
-    "challenge_id": "A001",
+    "challenge_id": "112",
     "description": "Share a Sustainability Tip: Share one practical sustainability tip you've learned with a friend, family member, or on social media.",
     "category": "Community & Advocacy",
     "type": "Daily",
@@ -108,7 +108,7 @@
     "impact_vector": ["advocacy", "community", "social", "education", "communication"]
   },
   {
-    "challenge_id": "A002",
+    "challenge_id": "113",
     "description": "Local Green Space Cleanup: Spend 30 minutes picking up litter at a local park, beach, or green space.",
     "category": "Community & Advocacy",
     "type": "Weekly",
@@ -117,7 +117,7 @@
     "impact_vector": ["advocacy", "community", "local", "waste", "nature", "health"]
   },
   {
-    "challenge_id": "L001",
+    "challenge_id": "114",
     "description": "Master Home Composting: Over the next month, set up and successfully maintain a home composting system for your food scraps.",
     "category": "Waste",
     "type": "Long-Term",
@@ -126,8 +126,8 @@
     "impact_vector": ["waste", "food waste", "compost", "household", "gardening", "emissions"]
   },
   {
-    "challenge_id": "L002",
-    "description": "Energy Audit and Upgrade: Conduct a thorough energy audit of your home this month and implement at least one significant efficiency upgrade (e.g., adding insulation, upgrading an old appliance).",
+    "challenge_id": "115",
+    "description": "Energy Audit and Upgrade: Conduct a thorough energy audit of your home this month and implement at least one significant efficiency upgrade.",
     "category": "Energy",
     "type": "Long-Term",
     "difficulty": "Hard",
@@ -135,7 +135,7 @@
     "impact_vector": ["energy", "household", "bills", "money", "savings", "efficiency", "audit"]
   },
   {
-    "challenge_id": "D004",
+    "challenge_id": "116",
     "description": "Hydrate with Tap Water: Avoid buying bottled water for the day. Use a reusable bottle and refill from the tap.",
     "category": "Diet",
     "type": "Daily",
@@ -144,7 +144,7 @@
     "impact_vector": ["diet", "waste", "plastic", "water", "single-use", "money", "savings"]
   },
   {
-    "challenge_id": "W003",
+    "challenge_id": "117",
     "description": "DIY Cleaning Product: Make one all-purpose household cleaner using simple ingredients like vinegar and water.",
     "category": "Waste",
     "type": "Weekly",
@@ -153,7 +153,7 @@
     "impact_vector": ["waste", "household", "chemicals", "diy", "money", "health"]
   },
   {
-    "challenge_id": "C003",
+    "challenge_id": "118",
     "description": "Mend a Garment: Instead of discarding it, repair one item of clothing that has a hole, missing button, or tear.",
     "category": "Consumption",
     "type": "Weekly",
@@ -162,7 +162,7 @@
     "impact_vector": ["consumption", "fast fashion", "repair", "diy", "money", "skills"]
   },
   {
-    "challenge_id": "E003",
+    "challenge_id": "119",
     "description": "Air-Dry Laundry: Skip the dryer for one load of laundry and let it air-dry on a line or rack.",
     "category": "Energy",
     "type": "Daily",
@@ -171,7 +171,7 @@
     "impact_vector": ["energy", "electricity", "household", "laundry", "bills", "savings"]
   },
   {
-    "challenge_id": "T003",
+    "challenge_id": "120",
     "description": "Check Tire Pressure: Ensure your car's tires are properly inflated, which can improve fuel efficiency by up to 3%.",
     "category": "Transport",
     "type": "Daily",
@@ -180,7 +180,7 @@
     "impact_vector": ["transport", "car", "maintenance", "fuel", "money", "efficiency"]
   },
   {
-    "challenge_id": "A003",
+    "challenge_id": "121",
     "description": "Watch & Share a Doc: Watch a documentary on an environmental topic and discuss one thing you learned with someone.",
     "category": "Community & Advocacy",
     "type": "Weekly",
@@ -189,8 +189,8 @@
     "impact_vector": ["advocacy", "education", "community", "awareness", "social"]
   },
   {
-    "challenge_id": "DI001",
-    "description": "Digital Cleanup: Spend 15 minutes deleting old, unnecessary files and emails from your cloud storage to reduce data center energy use.",
+    "challenge_id": "122",
+    "description": "Digital Cleanup: Spend 15 minutes deleting old, unnecessary files and emails from your cloud storage.",
     "category": "Digital",
     "type": "Daily",
     "difficulty": "Easy",
@@ -198,7 +198,7 @@
     "impact_vector": ["digital", "energy", "data", "cloud", "organization"]
   },
   {
-    "challenge_id": "DI002",
+    "challenge_id": "123",
     "description": "Inbox Zero Hero: Unsubscribe from at least 10 marketing or promotional email lists you no longer read.",
     "category": "Digital",
     "type": "Daily",
@@ -207,7 +207,7 @@
     "impact_vector": ["digital", "data", "email", "consumption", "organization"]
   },
   {
-    "challenge_id": "L003",
+    "challenge_id": "124",
     "description": "Grow Your Own Food: This month, start a small herb garden on your windowsill or a vegetable patch in your yard.",
     "category": "Diet",
     "type": "Long-Term",
@@ -216,7 +216,7 @@
     "impact_vector": ["diet", "food", "gardening", "local", "health", "skills"]
   },
   {
-    "challenge_id": "W004",
+    "challenge_id": "125",
     "description": "BYO Container: For one takeaway meal this week, bring your own reusable container to avoid single-use packaging.",
     "category": "Waste",
     "type": "Weekly",
@@ -225,7 +225,7 @@
     "impact_vector": ["waste", "plastic", "single-use", "food", "takeaway", "planning"]
   },
   {
-    "challenge_id": "C004",
+    "challenge_id": "126",
     "description": "Library Power: Borrow a book, movie, or game from your local library instead of buying a new one.",
     "category": "Consumption",
     "type": "Daily",
@@ -234,7 +234,7 @@
     "impact_vector": ["consumption", "shopping", "community", "money", "savings", "circular economy"]
   },
   {
-    "challenge_id": "E004",
+    "challenge_id": "127",
     "description": "Lower the Thermostat: Lower your heating thermostat by 1 degree Celsius (or 2 degrees Fahrenheit) for the entire day.",
     "category": "Energy",
     "type": "Daily",
@@ -243,7 +243,7 @@
     "impact_vector": ["energy", "heating", "household", "bills", "money", "savings"]
   },
   {
-    "challenge_id": "T004",
+    "challenge_id": "128",
     "description": "Car-Free Weekend Day: Choose one day this weekend to leave the car parked and rely only on walking, cycling, or public transport.",
     "category": "Transport",
     "type": "Weekly",
@@ -252,7 +252,7 @@
     "impact_vector": ["transport", "car", "emissions", "planning", "health", "local"]
   },
   {
-    "challenge_id": "A004",
+    "challenge_id": "129",
     "description": "Support a Green Business: Make a purchase from a local business known for its sustainable practices.",
     "category": "Community & Advocacy",
     "type": "Weekly",
@@ -261,7 +261,7 @@
     "impact_vector": ["advocacy", "community", "local", "shopping", "money", "business"]
   },
   {
-    "challenge_id": "DI003",
+    "challenge_id": "130",
     "description": "Mindful Streaming: Reduce your video streaming quality from HD to SD for your viewing session today.",
     "category": "Digital",
     "type": "Daily",
@@ -270,8 +270,8 @@
     "impact_vector": ["digital", "energy", "data", "streaming", "internet"]
   },
   {
-    "challenge_id": "D005",
-    "description": "Plant-Based Protein Swap: Replace the animal protein in one of your meals with a plant-based alternative like beans, lentils, or tofu.",
+    "challenge_id": "131",
+    "description": "Plant-Based Protein Swap: Replace the animal protein in one of your meals with a plant-based alternative like beans or tofu.",
     "category": "Diet",
     "type": "Daily",
     "difficulty": "Easy",
@@ -279,7 +279,7 @@
     "impact_vector": ["diet", "meat", "vegetarian", "vegan", "health", "food"]
   },
   {
-    "challenge_id": "W005",
+    "challenge_id": "132",
     "description": "Refuse the Receipt: Opt for a digital receipt or no receipt at all for your purchases this week.",
     "category": "Waste",
     "type": "Weekly",
@@ -288,8 +288,8 @@
     "impact_vector": ["waste", "paper", "consumption", "shopping", "digital"]
   },
   {
-    "challenge_id": "C005",
-    "description": "Experience Over Things: Plan an experience with a friend or family member (like a hike or a picnic) instead of exchanging material gifts.",
+    "challenge_id": "133",
+    "description": "Experience Over Things: Plan an experience with a friend (like a hike) instead of exchanging material gifts for an occasion.",
     "category": "Consumption",
     "type": "Long-Term",
     "difficulty": "Medium",
@@ -297,7 +297,7 @@
     "impact_vector": ["consumption", "minimalism", "shopping", "social", "health", "money"]
   },
   {
-    "challenge_id": "E005",
+    "challenge_id": "134",
     "description": "Energy-Saving Mode: Enable the energy-saving mode on your laptop or computer for your entire work session today.",
     "category": "Energy",
     "type": "Daily",
@@ -306,8 +306,8 @@
     "impact_vector": ["energy", "electricity", "digital", "work", "bills"]
   },
   {
-    "challenge_id": "T005",
-    "description": "Eco-Driving Practice: Consciously practice eco-driving techniques like smooth acceleration and braking during your trips today.",
+    "challenge_id": "135",
+    "description": "Eco-Driving Practice: Consciously practice smooth acceleration and braking during your trips today.",
     "category": "Transport",
     "type": "Daily",
     "difficulty": "Medium",
@@ -315,8 +315,8 @@
     "impact_vector": ["transport", "car", "fuel", "money", "efficiency", "skills"]
   },
   {
-    "challenge_id": "A005",
-    "description": "Write to a Company: Send an email or social media message to a company asking them about their sustainability practices or suggesting an improvement.",
+    "challenge_id": "136",
+    "description": "Write to a Company: Send a message to a company asking them about their sustainability practices.",
     "category": "Community & Advocacy",
     "type": "Weekly",
     "difficulty": "Medium",
@@ -324,8 +324,8 @@
     "impact_vector": ["advocacy", "community", "business", "consumption", "communication"]
   },
   {
-    "challenge_id": "L004",
-    "description": "Switch to a Green Energy Provider: Research and make the switch to a renewable energy provider for your home's electricity.",
+    "challenge_id": "137",
+    "description": "Switch to a Green Energy Provider: Research and make the switch to a renewable energy provider for your home.",
     "category": "Energy",
     "type": "Long-Term",
     "difficulty": "Hard",
@@ -333,7 +333,7 @@
     "impact_vector": ["energy", "electricity", "household", "bills", "renewable", "money"]
   },
   {
-    "challenge_id": "DI004",
+    "challenge_id": "138",
     "description": "Dark Mode Day: Use dark mode on your smartphone and computer for the entire day to save screen energy.",
     "category": "Digital",
     "type": "Daily",
@@ -342,7 +342,7 @@
     "impact_vector": ["digital", "energy", "electricity", "screen", "health"]
   },
   {
-    "challenge_id": "D006",
+    "challenge_id": "139",
     "description": "Finish Your Plate: Make a conscious effort to finish all the food on your plate for every meal today.",
     "category": "Diet",
     "type": "Daily",
@@ -351,7 +351,7 @@
     "impact_vector": ["diet", "food waste", "consumption", "awareness"]
   },
   {
-    "challenge_id": "W006",
+    "challenge_id": "140",
     "description": "Paperless Week: Actively avoid printing any documents this week, opting for digital versions instead.",
     "category": "Waste",
     "type": "Weekly",
@@ -360,7 +360,7 @@
     "impact_vector": ["waste", "paper", "digital", "work", "organization"]
   },
   {
-    "challenge_id": "C006",
+    "challenge_id": "141",
     "description": "DIY Gift: For the next gift-giving occasion, create a homemade gift instead of purchasing a new item.",
     "category": "Consumption",
     "type": "Long-Term",
@@ -369,7 +369,7 @@
     "impact_vector": ["consumption", "shopping", "diy", "money", "skills", "social"]
   },
   {
-    "challenge_id": "E006",
+    "challenge_id": "142",
     "description": "Shorter Shower: Time your shower today and aim to reduce it by at least two minutes.",
     "category": "Energy",
     "type": "Daily",
@@ -378,7 +378,7 @@
     "impact_vector": ["energy", "water", "heating", "household", "bills", "savings"]
   },
   {
-    "challenge_id": "T006",
+    "challenge_id": "143",
     "description": "Flight-Free Vacation Plan: Plan your next vacation to be reachable by train, bus, or car instead of by plane.",
     "category": "Transport",
     "type": "Long-Term",
@@ -387,7 +387,7 @@
     "impact_vector": ["transport", "emissions", "flying", "vacation", "planning", "local"]
   },
   {
-    "challenge_id": "A006",
+    "challenge_id": "144",
     "description": "Join a Green Forum: Join an online community or forum dedicated to sustainability and read the top 5 posts.",
     "category": "Community & Advocacy",
     "type": "Weekly",
@@ -396,7 +396,7 @@
     "impact_vector": ["advocacy", "community", "education", "social", "digital"]
   },
   {
-    "challenge_id": "DI005",
+    "challenge_id": "145",
     "description": "Offline Evening: Spend at least two hours this evening completely offline, with all your digital devices turned off.",
     "category": "Digital",
     "type": "Daily",
@@ -405,7 +405,7 @@
     "impact_vector": ["digital", "energy", "health", "social", "awareness"]
   },
   {
-    "challenge_id": "D007",
+    "challenge_id": "146",
     "description": "Seasonal Produce Only: For today's meals, only use fruits and vegetables that are currently in season in your region.",
     "category": "Diet",
     "type": "Daily",
@@ -414,7 +414,7 @@
     "impact_vector": ["diet", "local", "seasonal", "food miles", "shopping", "fresh"]
   },
   {
-    "challenge_id": "W007",
+    "challenge_id": "147",
     "description": "No New Plastic Bottles: For the entire week, avoid buying any beverages that come in single-use plastic bottles.",
     "category": "Waste",
     "type": "Weekly",
@@ -423,8 +423,8 @@
     "impact_vector": ["waste", "plastic", "single-use", "beverage", "shopping", "water"]
   },
   {
-    "challenge_id": "C007",
-    "description": "Borrow, Don't Buy: For a tool or item you need for a one-time use this week, borrow it from a friend, neighbor, or tool library.",
+    "challenge_id": "148",
+    "description": "Borrow, Don't Buy: For a tool or item you need for a one-time use this week, borrow it from a friend or neighbor.",
     "category": "Consumption",
     "type": "Weekly",
     "difficulty": "Easy",
@@ -432,7 +432,7 @@
     "impact_vector": ["consumption", "community", "money", "savings", "circular economy", "sharing"]
   },
   {
-    "challenge_id": "E007",
+    "challenge_id": "149",
     "description": "Seal a Draft: Identify and seal one air leak or draft in your home, for example, under a door or around a window.",
     "category": "Energy",
     "type": "Daily",
@@ -441,7 +441,7 @@
     "impact_vector": ["energy", "heating", "cooling", "household", "bills", "diy", "efficiency"]
   },
   {
-    "challenge_id": "T007",
+    "challenge_id": "150",
     "description": "Lighten Your Load: Remove any unnecessary heavy items from your car's trunk to improve its fuel efficiency.",
     "category": "Transport",
     "type": "Daily",
@@ -450,7 +450,7 @@
     "impact_vector": ["transport", "car", "fuel", "money", "efficiency", "maintenance"]
   },
   {
-    "challenge_id": "A007",
+    "challenge_id": "151",
     "description": "Volunteer for a Green Cause: Sign up for one hour of volunteer work with a local environmental organization.",
     "category": "Community & Advocacy",
     "type": "Long-Term",
@@ -459,7 +459,7 @@
     "impact_vector": ["advocacy", "community", "local", "volunteering", "social", "nature"]
   },
   {
-    "challenge_id": "DI006",
+    "challenge_id": "152",
     "description": "Audio-Only Call: Choose to make one of your video calls today an audio-only call to save data and energy.",
     "category": "Digital",
     "type": "Daily",
@@ -468,8 +468,8 @@
     "impact_vector": ["digital", "energy", "data", "work", "internet", "communication"]
   },
   {
-    "challenge_id": "D008",
-    "description": "Reduce Dairy Intake: Replace dairy milk with a plant-based alternative like oat or soy milk for your cereal or coffee today.",
+    "challenge_id": "153",
+    "description": "Reduce Dairy Intake: Replace dairy milk with a plant-based alternative for your cereal or coffee today.",
     "category": "Diet",
     "type": "Daily",
     "difficulty": "Easy",
@@ -477,8 +477,8 @@
     "impact_vector": ["diet", "dairy", "vegan", "emissions", "food", "health"]
   },
   {
-    "challenge_id": "W008",
-    "description": "Properly Dispose of E-Waste: Identify one piece of electronic waste in your home and find a proper local facility to recycle it.",
+    "challenge_id": "154",
+    "description": "Properly Dispose of E-Waste: Identify one piece of electronic waste and find a proper local facility to recycle it.",
     "category": "Waste",
     "type": "Weekly",
     "difficulty": "Medium",
@@ -486,8 +486,8 @@
     "impact_vector": ["waste", "e-waste", "electronics", "recycling", "household", "chemicals"]
   },
   {
-    "challenge_id": "C008",
-    "description": "Unfollow Fast Fashion: Unfollow five fast fashion brands on social media and follow five sustainable or second-hand fashion accounts instead.",
+    "challenge_id": "155",
+    "description": "Unfollow Fast Fashion: Unfollow five fast fashion brands on social media and follow five sustainable fashion accounts.",
     "category": "Consumption",
     "type": "Daily",
     "difficulty": "Easy",
@@ -495,7 +495,7 @@
     "impact_vector": ["consumption", "fast fashion", "shopping", "social media", "awareness", "digital"]
   },
   {
-    "challenge_id": "E008",
+    "challenge_id": "156",
     "description": "Full Loads Only: Only run your dishwasher or washing machine when they are completely full.",
     "category": "Energy",
     "type": "Weekly",
@@ -504,7 +504,7 @@
     "impact_vector": ["energy", "water", "electricity", "household", "bills", "efficiency"]
   },
   {
-    "challenge_id": "T008",
+    "challenge_id": "157",
     "description": "Plan a Walkable Outing: Plan a leisure activity for the upcoming weekend that is reachable by foot from your home.",
     "category": "Transport",
     "type": "Weekly",
@@ -513,8 +513,8 @@
     "impact_vector": ["transport", "car", "planning", "health", "local", "social"]
   },
   {
-    "challenge_id": "A008",
-    "description": "Contact a Local Representative: Write a short email to a local government representative about an environmental issue you care about.",
+    "challenge_id": "158",
+    "description": "Contact a Local Representative: Write a short email to a local representative about an environmental issue you care about.",
     "category": "Community & Advocacy",
     "type": "Weekly",
     "difficulty": "Hard",
@@ -522,8 +522,8 @@
     "impact_vector": ["advocacy", "community", "local", "government", "policy", "communication"]
   },
   {
-    "challenge_id": "DI007",
-    "description": "Download, Don't Stream: For a piece of music or a podcast you listen to regularly, download it instead of streaming it multiple times.",
+    "challenge_id": "159",
+    "description": "Download, Don't Stream: For music you listen to regularly, download it instead of streaming it multiple times.",
     "category": "Digital",
     "type": "Daily",
     "difficulty": "Easy",
@@ -531,8 +531,8 @@
     "impact_vector": ["digital", "data", "energy", "internet", "music", "efficiency"]
   },
   {
-    "challenge_id": "L005",
-    "description": "Conduct a Home Waste Audit: For one month, track every piece of waste your household produces to identify key areas for reduction and improved recycling.",
+    "challenge_id": "160",
+    "description": "Conduct a Home Waste Audit: For one month, track every piece of waste your household produces to identify key areas for reduction.",
     "category": "Waste",
     "type": "Long-Term",
     "difficulty": "Hard",

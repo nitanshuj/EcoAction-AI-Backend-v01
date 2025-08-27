@@ -84,58 +84,22 @@ def create_analyst_crew(user_data):
     
     return crew
 
+
+
+
+
 def create_update_planner_crew(user_data, carbon_results, benchmark_results, user_update_text):
     """Creates a crew for handling user updates and adaptive planning"""
-    
-    # Create planner agent
-    planner_agent = create_planner_agent()
-    
-    # Create update planning task
-    update_task = create_update_planning_task(planner_agent, user_data, carbon_results, benchmark_results, user_update_text)
-    
-    # Form the crew with single planner agent
-    crew = Crew(
-        agents=[planner_agent],
-        tasks=[update_task],
-        process=Process.sequential,
-        verbose=False,
-        memory=False
-    )
-    
-    return crew
+    pass
 
 def run_update_planning_workflow(user_data, carbon_results, benchmark_results, user_update_text):
     """Executes the update planning workflow when user provides feedback from dashboard"""
-    
-    crew = create_update_planner_crew(user_data, carbon_results, benchmark_results, user_update_text)
-    results = crew.kickoff()
-    
-    return results
+    pass
 
 def create_daily_tasks_crew(user_data, carbon_results, benchmark_results, completed_tasks):
     """Creates a crew for generating daily tasks when user completes 3 out of 5 tasks"""
-    
-    # Create planner agent
-    planner_agent = create_planner_agent()
-    
-    # Create daily tasks generation task
-    daily_task = create_daily_tasks_generation_task(planner_agent, user_data, carbon_results, benchmark_results, completed_tasks)
-    
-    # Form the crew with single planner agent
-    crew = Crew(
-        agents=[planner_agent],
-        tasks=[daily_task],
-        process=Process.sequential,
-        verbose=False,
-        memory=False
-    )
-    
-    return crew
+    pass
 
 def run_daily_tasks_generation_workflow(user_data, carbon_results, benchmark_results, completed_tasks):
     """Executes the daily tasks generation workflow when user completes 3 out of 5 challenges"""
-    
-    crew = create_daily_tasks_crew(user_data, carbon_results, benchmark_results, completed_tasks)
-    results = crew.kickoff()
-    
-    return results
+    pass

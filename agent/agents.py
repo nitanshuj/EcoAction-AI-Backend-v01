@@ -84,8 +84,8 @@ def create_planner_agent():
     """Creates the Weekly Action Planner Agent"""
     
     return Agent(
-        role="Personal Sustainability Planner and Action Coach",
-        goal="Review enriched user profiles and carbon analysis to generate 5 highly personalized, "
+        role="Personal Sustainability Challenge Planner & Action Coach",
+        goal="Review enriched user profiles and carbon analysis to generate 6 hyper personalized, "
              "achievable sustainability challenges (3 daily + 2 long-term). Generate additional daily tasks "
              "when users complete 3 out of 5 challenges to maintain momentum and build sustainable habits.",
         backstory="You are an expert personal sustainability coach who specializes in creating structured, "

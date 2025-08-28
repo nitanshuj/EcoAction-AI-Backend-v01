@@ -41,6 +41,7 @@ dependencies = [
     "langchain>=0.3.27",
     "langchain-community>=0.3.29",
     "langchain-google-genai>=2.0.10",
+    "altair>=5.5.0",
 ]
 
 [dependency-groups]

@@ -3,6 +3,7 @@ import streamlit as st
 import sys
 import os
 import pandas as pd
+import altair as alt
 
 # Add the parent directory to the path so we can import from utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -299,12 +300,12 @@ if user:
         # Carbon Footprint Analysis Header
         st.markdown("---")
         st.markdown("""
-        <div style="background: linear-gradient(135deg, #4CAF50 0%, #45A049 100%); 
-                    border-radius: 15px; padding: 2rem; margin: 2rem 0; text-align: center; 
-                    color: white; box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);">
-            <h2 style="color: white; margin-bottom: 0.5rem;">🌍 Your Carbon Footprint Analysis</h2>
-            <p style="color: #E8F5E8; font-size: 1.1rem; margin: 0;">
-                Powered by AI - Personalized insights based on your lifestyle
+        <div style="background: linear-gradient(135deg, #BFEE90 30%, #90EEBF 70%); 
+                    border-radius: 15px; padding: 1.5rem; margin: 1.5rem 0; text-align: center; 
+                    color: white; box-shadow: 0 6px 24px rgba(76, 175, 80, 0.3);">
+            <h3 style="color: white; margin-bottom: 0.5rem; font-size: 1.75rem;">🌍 Your Carbon Footprint Analysis</h3>
+            <p style="color: #3D8EEB; font-size: 1rem; margin: 0;">
+                Powered by AI – Personalized insights based on your lifestyle
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -381,14 +382,25 @@ if user:
                     'Category': categories,
                     'Annual Emissions (kg CO₂)': emissions
                 })
+                # Sort the DataFrame for an ordered chart (optional but good practice)
+                df_sorted = df.sort_values(by='Annual Emissions (kg CO₂)', 
+                                           ascending=False)
+
+                # --- Create the chart using Altair ---
+                chart = alt.Chart(df_sorted).mark_bar().encode(
+                    x=alt.X('Category', title='Emission Category', sort=None, axis=alt.Axis(labelAngle=45)), # Custom X-axis title
+                    y=alt.Y('Annual Emissions (kg CO₂)', title='Annual Emissions (kg CO₂)') # Custom Y-axis title
+                )
                 
-                # Display as bar chart
-                st.bar_chart(df.set_index('Category'))
-                
-                # Display as table with percentages
+                # Display the Altair chart in Streamlit
+                st.altair_chart(chart, use_container_width=True)
+
+            # --- Display the table (can still use the original DataFrame logic) ---
                 df['Percentage'] = (df['Annual Emissions (kg CO₂)'] / df['Annual Emissions (kg CO₂)'].sum() * 100).round(1)
                 df['Percentage'] = df['Percentage'].astype(str) + '%'
-                st.dataframe(df, use_container_width=True, hide_index=True)
+                st.dataframe(df.sort_values(by='Annual Emissions (kg CO₂)', ascending=False), 
+                             use_container_width=True, 
+                             hide_index=True)
         
         # Fun Comparison Facts - Move up and make bigger
         fun_facts = calculation_data.get('fun_comparison_facts', [])
@@ -404,26 +416,6 @@ if user:
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
-        
-        # # Key Lever Validations - Make compact
-        # st.subheader("🔧 Key Reduction Opportunities")
-        # key_lever_validations = calculation_data.get('key_lever_validations', [])
-        
-        # if key_lever_validations:
-        #     for validation in key_lever_validations:
-        #         lever = validation.get('lever', '')
-        #         validated = validation.get('validated', False)
-        #         potential_reduction = validation.get('potential_reduction_kg', 0)
-        #         validation_reason = validation.get('validation_reason', '')
-        #         impact_category = validation.get('impact_category', '')
-                
-        #         status_icon = "✅" if validated else "❌"
-        #         message = f"{status_icon} **{lever}** ({impact_category}) - {potential_reduction:.0f} kg CO₂/year potential reduction"
-                
-        #         if validated:
-        #             st.info(message)
-        #         else:
-        #             st.warning(message)
         
         # Psychographic Insights - Side by side
         st.subheader("💭 Personalized Insights")
@@ -505,166 +497,21 @@ if user:
         
         st.markdown("---")
         
-        # # Debug Section
-        # with st.expander("🔧 Debug: Database Status"):
-        #     col1, col2 = st.columns(2)
-            
-        #     with col1:
-        #         if st.button("🔍 Check Weekly Plans"):
-        #             plans = debug_weekly_plans(user.id)
-        #             st.json(plans)
-            
-        #     with col2:
-        #         if st.button("🔍 Check User Actions"):
-        #             actions = debug_user_actions(user.id)
-        #             st.json(actions)
-        
-        # Feedback Section - Two-Tiered Memory System
-        st.subheader("💬 Customize Your Plan")
-        
-        # Display current feedback status
-        current_feedback = get_current_week_feedback(user.id)
-        feedback_history = get_user_feedback_history(user.id, limit=2)
-        
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            # st.markdown("""
-            # <div style="background: linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%); 
-            #             border-radius: 15px; padding: 1.5rem; margin-bottom: 1rem;">
-            #     <h4 style="color: #2E7D32; margin-bottom: 1rem;">🎯 Personalize Your Challenges</h4>
-            #     <p style="color: #388E3C; margin-bottom: 0.5rem;">
-            #         Tell us how we can improve your challenges! Your feedback helps our AI create better recommendations.
-            #     </p>
-            # </div>
-            # """, unsafe_allow_html=True)
-            
-            # Feedback input
-            feedback_text = st.text_area(
-                "Share your thoughts:",
-                placeholder="Examples:\n• These challenges are too hard\n• I want more money-saving tips\n• Give me more home-based tasks\n• I don't have a car, focus on other areas",
-                height=100,
-                help="Your feedback helps our AI adapt your challenges to your preferences and constraints.",
-                key="feedback_text_area_main"
-            )
-            
-            col_submit, col_regenerate = st.columns([1, 1])
-            
-            with col_submit:
-                if st.button("💾 Save Feedback", type="primary", key="save_feedback_main"):
-                    if feedback_text.strip():
-                        with st.spinner("Processing your feedback..."):
-                            success = save_feedback_and_process(user.id, feedback_text)
-                            if success:
-                                st.success("✅ Feedback saved! Use 'Regenerate Plan' to apply changes.")
-                                st.rerun()
-                            else:
-                                st.error("❌ Failed to save feedback. Please try again.")
-                    else:
-                        st.warning("Please enter some feedback before saving.")
-            
-            with col_regenerate:
-                if st.button("🔄 Regenerate Plan", type="secondary", key="regenerate_plan_main"):
-                    if current_feedback and current_feedback.get('feedback_summary'):
-                        with st.spinner("🤖 Creating personalized plan based on your feedback..."):
-                            try:
-                                ## AGENT 3 - FEEDBACK AWARE PLANNING accessed
-                                ## ==========================================
-                                # Run feedback-aware planning workflow with the saved feedback
-                                results = run_feedback_aware_planning_workflow(user.id, raw_feedback=current_feedback.get('user_feedback', ''))
-                                
-                                if results:
-                                    # Parse and save the new plan
-                                    from agent.utils import parse_agent3_text_output
-                                    
-                                    new_plan = parse_agent3_text_output(results, task_type="feedback_aware")
-                                    
-                                    if new_plan:
-                                        # Save the new plan
-                                        from data_model.database import save_weekly_plan_results, create_agent_session
-                                        session_id = create_agent_session(user.id, "feedback_planning", "Feedback-aware planning")
-                                        save_weekly_plan_results(user.id, session_id, new_plan)
-                                        
-                                        st.success("✅ Your plan has been updated based on your feedback!")
-                                        st.balloons()
-                                        st.rerun()
-                                    else:
-                                        st.error("❌ Failed to parse AI response")
-                                else:
-                                    st.error("Failed to generate new plan")
-                                    
-                            except Exception as e:
-                                st.error(f"Error regenerating plan: {str(e)}")
-                    else:
-                        st.info("💡 Please provide feedback first, then regenerate your plan.")
-        
-        with col2:
-            # Display feedback history
-            if feedback_history:
-                st.markdown("""
-                <div style="background: #F3E5F5; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-                    <h5 style="color: #7B1FA2; margin-bottom: 0.5rem;">📝 Recent Feedback</h5>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                for i, feedback in enumerate(feedback_history[:2]):
-                    st.markdown(f"""
-                    <div style="background: white; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.5rem; 
-                                border-left: 4px solid #9C27B0; font-size: 0.85rem;">
-                        <strong style="color: #7B1FA2;">Week of {feedback['week_of']}:</strong><br>
-                        <span style="color: #424242;">{feedback['summary']}</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style="background: #FFF3E0; border-radius: 10px; padding: 1rem; text-align: center;">
-                    <div style="color: #E65100; font-size: 0.9rem;">
-                        💡 No feedback yet<br>
-                        <small>Share your thoughts to personalize your experience!</small>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        st.markdown("---")
         
         # Weekly action plan section
         plan_header_col1, plan_header_col2 = st.columns([3, 1])
         
-        with plan_header_col1:
-            st.subheader("🗓️ Your Personalized Weekly Plan")
-        
-        with plan_header_col2:
-            if st.button("🔄 Regenerate Plan (feedback)", type="secondary", help="Generate a new weekly plan without providing feedback"):
-                with st.spinner("🤖 Agent 3 is creating a fresh weekly plan for you..."):
-                    try:
-                        ## AGENT 3 - BASIC PLANNER (INITIAL PLANNER)
-                        ## ==========================================
-                        # Run the basic planner workflow to generate a new plan
-                        new_plan_results = run_planner_workflow(user.id)
-                        
-                        if new_plan_results:
-                            # Parse and save the new plan
-                            from agent.utils import parse_text_to_json
-                            
-                            new_plan = parse_text_to_json(new_plan_results)
-                            
-                            if new_plan:
-                                # Save the new plan
-                                from data_model.database import save_weekly_plan_results, create_agent_session
-                                session_id = create_agent_session(user.id, "regenerate_planning", "Fresh plan generation")
-                                save_weekly_plan_results(user.id, session_id, new_plan)
-                                
-                                st.success("✅ Your weekly plan has been regenerated!")
-                                st.balloons()
-                                st.rerun()
-                            else:
-                                st.error("❌ Failed to parse AI response")
-                        else:
-                            st.error("Failed to generate new plan")
-                            
-                    except Exception as e:
-                        st.error(f"Error regenerating plan: {str(e)}")
-        
+        # with plan_header_col1:
+        #     st.subheader("🗓️ Your Challenges !!")
+
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #BFEE90 30%, #90EEBF 70%); 
+                    border-radius: 15px; padding: 1.5rem; margin: 1.5rem 0; text-align: center; 
+                    color: white; box-shadow: 0 6px 24px rgba(76, 175, 80, 0.3);">
+            <h3 style="color: white; margin-bottom: 0.5rem; font-size: 1.75rem;">🗓️ Your Challenges !!</h3>
+        </div>
+        """, unsafe_allow_html=True)
+                
         # Check if we have planner results
         planner_data = agent_results.get('weekly_plan_data')
         

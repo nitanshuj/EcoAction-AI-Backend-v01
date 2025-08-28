@@ -3,29 +3,40 @@ import streamlit as st
 import sys
 import os
 import pandas as pd
-import json
 
 # Add the parent directory to the path so we can import from utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data_model.auth import get_current_user, get_user_profile
+from data_model.database import check_agents_status, get_agent_results
 from data_model.database import (
-    get_user_progress_summary, 
-    get_user_recent_actions, 
-    get_user_onboarding_data,
-    save_weekly_plan_results, 
-    get_latest_weekly_plan, 
-    get_latest_scoring_results,
+    get_supabase,
+    # save_user_profile,
+    # save_challenge_completion,
+    # get_user_completed_challenges,
+    # get_user_score,
+    check_agents_status,
+    get_agent_results,
+    # save_weekly_plan,
+    # get_weekly_plan,
+    # get_user_weekly_plans,
+    get_latest_weekly_plan,
     save_task_completion,
     get_task_completions,
     get_completed_tasks_count,
-    save_daily_tasks,
-    get_daily_tasks,
-    get_supabase
+    save_weekly_plan_results,
+    debug_weekly_plans,
+    debug_user_actions,
+    get_current_week_feedback, 
+    get_user_feedback_history, 
+    save_feedback_and_process,
+    # check_user_engagement,
 )
-from agent.crew import run_update_planning_workflow, run_daily_tasks_generation_workflow, run_planner_workflow
-
-# Page configuration
+from agent.crew import (
+    run_planner_workflow,
+    run_feedback_aware_planning_workflow,
+    run_update_planning_workflow,
+)# Page configuration
 st.set_page_config(
     page_title="EcoAction AI - Dashboard",
     page_icon="📊",
@@ -101,6 +112,7 @@ def apply_simple_styles():
 current_user = get_current_user()
 
 if not current_user:
+    
     # Apply simple styles for non-authenticated users
     apply_simple_styles()
     
@@ -143,7 +155,66 @@ if user:
     else:
         display_name = user.email.split('@')[0] if user.email else 'User'
     
-    # Dashboard header
+    # Dashboard header with sidebar for quick actions
+    with st.sidebar:
+        st.markdown("### � Quick Actions")
+        
+        # New Plan button
+        if st.button("🔄 Original Plan", type="secondary", help="Generate fresh weekly challenges", use_container_width=True):
+            with st.spinner("🤖 Creating fresh plan..."):
+                try:
+                    # Run the basic planner workflow to generate a new plan
+                    new_plan_results = run_planner_workflow(user.id)
+                    
+                    if new_plan_results:
+                        # Parse and save the new plan
+                        from agent.utils import parse_text_to_json
+                        
+                        new_plan = parse_text_to_json(new_plan_results)
+                        
+                        if new_plan:
+                            # Save the new plan
+                            from data_model.database import (
+                                save_weekly_plan_results, 
+                                create_agent_session, 
+                                save_agent_results, 
+                                update_agent_session)
+                            
+                            # Create session and save results
+                            session_id = create_agent_session(user.id, "fresh_planning", "Fresh weekly plan generation")
+                            save_agent_results(user.id, 'planner', new_plan, session_id)
+                            update_agent_session(session_id, "completed", new_plan)
+                            save_weekly_plan_results(user.id, session_id, new_plan)
+                            
+                            st.success("✅ Fresh plan generated!")
+                            st.balloons()
+                            st.rerun()
+                        else:
+                            st.error("❌ Failed to parse AI response")
+                    else:
+                        st.error("Failed to generate new plan")
+                        
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+        
+        st.markdown("---")
+        
+        # User info and logout
+        # st.markdown(f"**Welcome, {display_name}!**")
+        # st.markdown(f"📧 {user.email}")
+        
+        # Logout button
+        if st.button("🚪 Logout", type="primary", use_container_width=True):
+            # Clear the session state for authentication
+            if 'authenticated' in st.session_state:
+                del st.session_state['authenticated']
+            if 'user' in st.session_state:
+                del st.session_state['user']
+            
+            st.success("✅ Successfully logged out!")
+            st.rerun()
+    
+    # Dashboard header (now full width)
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, #6495ED 0%, #4169E1 50%, #1E90FF 100%); 
                 border-radius: 20px; padding: 2rem; margin-bottom: 2rem; text-align: center; 
@@ -155,8 +226,7 @@ if user:
     </div>
     """, unsafe_allow_html=True)
     
-    # Check agent status first
-    from data_model.database import check_agents_status, get_agent_results
+    
     
     try:
         agents_status = check_agents_status(user.id)
@@ -320,76 +390,83 @@ if user:
                 df['Percentage'] = df['Percentage'].astype(str) + '%'
                 st.dataframe(df, use_container_width=True, hide_index=True)
         
-        # Key Lever Validations
-        st.subheader("🔧 Key Reduction Opportunities")
-        key_lever_validations = calculation_data.get('key_lever_validations', [])
-        
-        if key_lever_validations:
-            for i, validation in enumerate(key_lever_validations, 1):
-                lever = validation.get('lever', '')
-                validated = validation.get('validated', False)
-                potential_reduction = validation.get('potential_reduction_kg', 0)
-                validation_reason = validation.get('validation_reason', '')
-                impact_category = validation.get('impact_category', '')
-                
-                status_icon = "✅" if validated else "❌"
-                status_color = "#4CAF50" if validated else "#F44336"
-                
-                st.markdown(f"""
-                <div style="background: white; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; 
-                            border-left: 5px solid {status_color}; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                    <h4 style="color: #2C3E50; margin-bottom: 0.5rem;">
-                        {status_icon} {lever}
-                    </h4>
-                    <div style="color: #666; margin-bottom: 0.5rem;">
-                        <strong>Impact Category:</strong> {impact_category} | 
-                        <strong>Potential Reduction:</strong> {potential_reduction:.0f} kg CO₂/year
-                    </div>
-                    <div style="color: #666; font-style: italic;">
-                        {validation_reason}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        # Psychographic Insights
-        st.subheader("💭 Personalized Insights")
-        psychographic_insights = calculation_data.get('psychographic_insights', [])
-        
-        if psychographic_insights:
-            for i, insight in enumerate(psychographic_insights, 1):
-                insight_text = insight.get('insight_text', '')
-                related_motivation = insight.get('related_motivation', '')
-                addresses_barrier = insight.get('addresses_barrier', '')
-                actionable_step = insight.get('actionable_next_step', '')
-                
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); 
-                            border-radius: 12px; padding: 1.5rem; margin: 1rem 0; 
-                            border: 1px solid #2196F3; box-shadow: 0 2px 10px rgba(33,150,243,0.1);">
-                    <h4 style="color: #1976D2; margin-bottom: 1rem;">💡 Insight #{i}</h4>
-                    <p style="color: #2C3E50; font-size: 1.1rem; margin-bottom: 1rem; line-height: 1.6;">
-                        {insight_text}
-                    </p>
-                    <div style="background: rgba(255,255,255,0.7); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
-                        <div style="color: #666; margin-bottom: 0.5rem;">
-                            <strong>🎯 Addresses your motivation:</strong> {related_motivation}
-                        </div>
-                        <div style="color: #666; margin-bottom: 0.5rem;">
-                            <strong>🚧 Helps overcome barrier:</strong> {addresses_barrier}
-                        </div>
-                        <div style="color: #1976D2; font-weight: 600;">
-                            <strong>🚀 Next step:</strong> {actionable_step}
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        # Fun Comparison Facts
+        # Fun Comparison Facts - Move up and make bigger
         fun_facts = calculation_data.get('fun_comparison_facts', [])
         if fun_facts:
             st.subheader("🎯 Fun Comparison Facts")
             for fact in fun_facts:
-                st.info(f"💡 {fact}")
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%); 
+                            border-radius: 15px; padding: 1.5rem; margin: 1rem 0; 
+                            border-left: 5px solid #4CAF50; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);">
+                    <p style="color: #2E7D32; font-size: 1.2rem; margin: 0; font-weight: 500;">
+                        💡 {fact}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # # Key Lever Validations - Make compact
+        # st.subheader("🔧 Key Reduction Opportunities")
+        # key_lever_validations = calculation_data.get('key_lever_validations', [])
+        
+        # if key_lever_validations:
+        #     for validation in key_lever_validations:
+        #         lever = validation.get('lever', '')
+        #         validated = validation.get('validated', False)
+        #         potential_reduction = validation.get('potential_reduction_kg', 0)
+        #         validation_reason = validation.get('validation_reason', '')
+        #         impact_category = validation.get('impact_category', '')
+                
+        #         status_icon = "✅" if validated else "❌"
+        #         message = f"{status_icon} **{lever}** ({impact_category}) - {potential_reduction:.0f} kg CO₂/year potential reduction"
+                
+        #         if validated:
+        #             st.info(message)
+        #         else:
+        #             st.warning(message)
+        
+        # Psychographic Insights - Side by side
+        st.subheader("💭 Personalized Insights")
+        psychographic_insights = calculation_data.get('psychographic_insights', [])
+        
+        if psychographic_insights:
+            # Display insights in 2 columns if there are at least 2
+            if len(psychographic_insights) >= 2:
+                col1, col2 = st.columns(2)
+                
+                for i, insight in enumerate(psychographic_insights[:2]):  # Show max 2 insights
+                    insight_text = insight.get('insight_text', '')
+                    related_motivation = insight.get('related_motivation', '')
+                    addresses_barrier = insight.get('addresses_barrier', '')
+                    actionable_step = insight.get('actionable_next_step', '')
+                    
+                    col = col1 if i == 0 else col2
+                    
+                    with col:
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); 
+                                    border-radius: 12px; padding: 1.2rem; margin: 0.5rem 0; 
+                                    border: 1px solid #2196F3; box-shadow: 0 2px 10px rgba(33,150,243,0.1); height: 220px;">
+                            <h5 style="color: #1976D2; margin-bottom: 0.8rem;">💡 Insight #{i+1}</h5>
+                            <p style="color: #2C3E50; font-size: 0.95rem; margin-bottom: 0.8rem; line-height: 1.4;">
+                                {insight_text[:100]}{"..." if len(insight_text) > 100 else ""}
+                            </p>
+                            <div style="background: rgba(255,255,255,0.7); border-radius: 6px; padding: 0.6rem; font-size: 0.85rem;">
+                                <div style="color: #1976D2; font-weight: 600; margin-bottom: 0.3rem;">
+                                    🚀 {actionable_step[:60]}{"..." if len(actionable_step) > 60 else ""}
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                # If only one insight, display it normally
+                for i, insight in enumerate(psychographic_insights[:1]):
+                    insight_text = insight.get('insight_text', '')
+                    related_motivation = insight.get('related_motivation', '')
+                    addresses_barrier = insight.get('addresses_barrier', '')
+                    actionable_step = insight.get('actionable_next_step', '')
+                    
+                    st.info(f"💡 **Insight:** {insight_text}\n\n🚀 **Next step:** {actionable_step}")
         
         # Priority Reduction Areas
         priority_areas = calculation_data.get('priority_reduction_areas', [])
@@ -428,16 +505,22 @@ if user:
         
         st.markdown("---")
         
+        # # Debug Section
+        # with st.expander("🔧 Debug: Database Status"):
+        #     col1, col2 = st.columns(2)
+            
+        #     with col1:
+        #         if st.button("🔍 Check Weekly Plans"):
+        #             plans = debug_weekly_plans(user.id)
+        #             st.json(plans)
+            
+        #     with col2:
+        #         if st.button("🔍 Check User Actions"):
+        #             actions = debug_user_actions(user.id)
+        #             st.json(actions)
+        
         # Feedback Section - Two-Tiered Memory System
         st.subheader("💬 Customize Your Plan")
-        
-        # Import feedback functions
-        from data_model.database import (
-            get_current_week_feedback, 
-            get_user_feedback_history, 
-            save_feedback_and_process
-        )
-        from agent.crew import run_feedback_aware_planning_workflow
         
         # Display current feedback status
         current_feedback = get_current_week_feedback(user.id)
@@ -446,28 +529,29 @@ if user:
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            st.markdown("""
-            <div style="background: linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%); 
-                        border-radius: 15px; padding: 1.5rem; margin-bottom: 1rem;">
-                <h4 style="color: #2E7D32; margin-bottom: 1rem;">🎯 Personalize Your Challenges</h4>
-                <p style="color: #388E3C; margin-bottom: 0.5rem;">
-                    Tell us how we can improve your challenges! Your feedback helps our AI create better recommendations.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+            # st.markdown("""
+            # <div style="background: linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%); 
+            #             border-radius: 15px; padding: 1.5rem; margin-bottom: 1rem;">
+            #     <h4 style="color: #2E7D32; margin-bottom: 1rem;">🎯 Personalize Your Challenges</h4>
+            #     <p style="color: #388E3C; margin-bottom: 0.5rem;">
+            #         Tell us how we can improve your challenges! Your feedback helps our AI create better recommendations.
+            #     </p>
+            # </div>
+            # """, unsafe_allow_html=True)
             
             # Feedback input
             feedback_text = st.text_area(
                 "Share your thoughts:",
                 placeholder="Examples:\n• These challenges are too hard\n• I want more money-saving tips\n• Give me more home-based tasks\n• I don't have a car, focus on other areas",
                 height=100,
-                help="Your feedback helps our AI adapt your challenges to your preferences and constraints."
+                help="Your feedback helps our AI adapt your challenges to your preferences and constraints.",
+                key="feedback_text_area_main"
             )
             
             col_submit, col_regenerate = st.columns([1, 1])
             
             with col_submit:
-                if st.button("💾 Save Feedback", type="primary"):
+                if st.button("💾 Save Feedback", type="primary", key="save_feedback_main"):
                     if feedback_text.strip():
                         with st.spinner("Processing your feedback..."):
                             success = save_feedback_and_process(user.id, feedback_text)
@@ -480,73 +564,20 @@ if user:
                         st.warning("Please enter some feedback before saving.")
             
             with col_regenerate:
-                if st.button("🔄 Regenerate Plan", type="secondary"):
+                if st.button("🔄 Regenerate Plan", type="secondary", key="regenerate_plan_main"):
                     if current_feedback and current_feedback.get('feedback_summary'):
                         with st.spinner("🤖 Creating personalized plan based on your feedback..."):
                             try:
-                                # Run feedback-aware planning workflow
-                                results = run_feedback_aware_planning_workflow(user.id)
+                                ## AGENT 3 - FEEDBACK AWARE PLANNING accessed
+                                ## ==========================================
+                                # Run feedback-aware planning workflow with the saved feedback
+                                results = run_feedback_aware_planning_workflow(user.id, raw_feedback=current_feedback.get('user_feedback', ''))
                                 
-                                if results and hasattr(results, 'raw'):
+                                if results:
                                     # Parse and save the new plan
-                                    import json
-                                    import re
+                                    from agent.utils import parse_agent3_text_output
                                     
-                                    raw_output = str(results.raw)
-                                    print(f"🐛 Debug - Raw AI output (feedback): {raw_output[:500]}...")  # Debug info
-                                    
-                                    # More robust JSON extraction (same function as above)
-                                    def extract_and_parse_json(text):
-                                        """Extract and parse JSON from AI response with multiple fallback strategies"""
-                                        
-                                        # Strategy 1: Look for complete JSON object
-                                        json_pattern = r'\{(?:[^{}]|{[^{}]*})*\}'
-                                        matches = re.findall(json_pattern, text, re.DOTALL)
-                                        
-                                        for match in matches:
-                                            try:
-                                                return json.loads(match)
-                                            except json.JSONDecodeError:
-                                                continue
-                                        
-                                        # Strategy 2: Find JSON between specific markers
-                                        start_markers = ['{', '```json\n{', '```\n{']
-                                        end_markers = ['}', '}\n```', '}\n```']
-                                        
-                                        for start_marker, end_marker in zip(start_markers, end_markers):
-                                            start_idx = text.find(start_marker)
-                                            if start_idx != -1:
-                                                end_idx = text.rfind(end_marker)
-                                                if end_idx > start_idx:
-                                                    json_candidate = text[start_idx:end_idx + len(end_marker.rstrip())]
-                                                    try:
-                                                        return json.loads(json_candidate)
-                                                    except json.JSONDecodeError:
-                                                        continue
-                                        
-                                        # Strategy 3: Try to fix common JSON issues
-                                        # Remove markdown code blocks
-                                        cleaned = re.sub(r'```json\s*', '', text)
-                                        cleaned = re.sub(r'```\s*', '', cleaned)
-                                        
-                                        # Find the largest JSON-like structure
-                                        json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
-                                        if json_match:
-                                            json_text = json_match.group(0)
-                                            
-                                            # Try to fix common issues
-                                            # Fix trailing commas
-                                            json_text = re.sub(r',(\s*[}\]])', r'\1', json_text)
-                                            
-                                            try:
-                                                return json.loads(json_text)
-                                            except json.JSONDecodeError:
-                                                pass
-                                        
-                                        return None
-                                    
-                                    # Extract JSON using robust method
-                                    new_plan = extract_and_parse_json(raw_output)
+                                    new_plan = parse_agent3_text_output(results, task_type="feedback_aware")
                                     
                                     if new_plan:
                                         # Save the new plan
@@ -558,9 +589,7 @@ if user:
                                         st.balloons()
                                         st.rerun()
                                     else:
-                                        st.error("❌ Failed to extract valid JSON from AI response")
-                                        with st.expander("🔍 Debug: View Raw AI Output"):
-                                            st.text_area("Raw output for debugging:", raw_output, height=300)
+                                        st.error("❌ Failed to parse AI response")
                                 else:
                                     st.error("Failed to generate new plan")
                                     
@@ -605,72 +634,19 @@ if user:
             st.subheader("🗓️ Your Personalized Weekly Plan")
         
         with plan_header_col2:
-            if st.button("🔄 Regenerate Plan", type="secondary", help="Generate a new weekly plan without providing feedback"):
+            if st.button("🔄 Regenerate Plan (feedback)", type="secondary", help="Generate a new weekly plan without providing feedback"):
                 with st.spinner("🤖 Agent 3 is creating a fresh weekly plan for you..."):
                     try:
+                        ## AGENT 3 - BASIC PLANNER (INITIAL PLANNER)
+                        ## ==========================================
                         # Run the basic planner workflow to generate a new plan
                         new_plan_results = run_planner_workflow(user.id)
                         
-                        if new_plan_results and hasattr(new_plan_results, 'raw'):
+                        if new_plan_results:
                             # Parse and save the new plan
-                            import json
-                            import re
+                            from agent.utils import parse_text_to_json
                             
-                            raw_output = str(new_plan_results.raw)
-                            print(f"🐛 Debug - Raw AI output: {raw_output[:500]}...")  # Debug info
-                            
-                            # More robust JSON extraction
-                            def extract_and_parse_json(text):
-                                """Extract and parse JSON from AI response with multiple fallback strategies"""
-                                
-                                # Strategy 1: Look for complete JSON object
-                                json_pattern = r'\{(?:[^{}]|{[^{}]*})*\}'
-                                matches = re.findall(json_pattern, text, re.DOTALL)
-                                
-                                for match in matches:
-                                    try:
-                                        return json.loads(match)
-                                    except json.JSONDecodeError:
-                                        continue
-                                
-                                # Strategy 2: Find JSON between specific markers
-                                start_markers = ['{', '```json\n{', '```\n{']
-                                end_markers = ['}', '}\n```', '}\n```']
-                                
-                                for start_marker, end_marker in zip(start_markers, end_markers):
-                                    start_idx = text.find(start_marker)
-                                    if start_idx != -1:
-                                        end_idx = text.rfind(end_marker)
-                                        if end_idx > start_idx:
-                                            json_candidate = text[start_idx:end_idx + len(end_marker.rstrip())]
-                                            try:
-                                                return json.loads(json_candidate)
-                                            except json.JSONDecodeError:
-                                                continue
-                                
-                                # Strategy 3: Try to fix common JSON issues
-                                # Remove markdown code blocks
-                                cleaned = re.sub(r'```json\s*', '', text)
-                                cleaned = re.sub(r'```\s*', '', cleaned)
-                                
-                                # Find the largest JSON-like structure
-                                json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
-                                if json_match:
-                                    json_text = json_match.group(0)
-                                    
-                                    # Try to fix common issues
-                                    # Fix trailing commas
-                                    json_text = re.sub(r',(\s*[}\]])', r'\1', json_text)
-                                    
-                                    try:
-                                        return json.loads(json_text)
-                                    except json.JSONDecodeError:
-                                        pass
-                                
-                                return None
-                            
-                            # Extract JSON using robust method
-                            new_plan = extract_and_parse_json(raw_output)
+                            new_plan = parse_text_to_json(new_plan_results)
                             
                             if new_plan:
                                 # Save the new plan
@@ -682,9 +658,7 @@ if user:
                                 st.balloons()
                                 st.rerun()
                             else:
-                                st.error("❌ Failed to extract valid JSON from AI response")
-                                with st.expander("🔍 Debug: View Raw AI Output"):
-                                    st.text_area("Raw output for debugging:", raw_output, height=300)
+                                st.error("❌ Failed to parse AI response")
                         else:
                             st.error("Failed to generate new plan")
                             
@@ -711,7 +685,7 @@ if user:
             # Get the actual weekly plan ID from the database
             latest_weekly_plan = get_latest_weekly_plan(user.id)
             if latest_weekly_plan:
-                weekly_plan_id = latest_weekly_plan['id']
+                weekly_plan_id = str(latest_weekly_plan['id'])  # Use the UUID from weekly_plans table
             else:
                 # If no weekly plan found, we can't track completions
                 weekly_plan_id = None
@@ -726,8 +700,9 @@ if user:
             
             # Update challenges with completion status from database
             for i, challenge in enumerate(weekly_challenges):
-                task_id = f"challenge_{i+1}"
-                challenge['completed'] = completion_map.get(task_id, challenge.get('completed', False))
+                # Use the challenge's ID if available, otherwise use the index-based format
+                challenge_id = challenge.get('id', f"challenge_{i+1}")
+                challenge['completed'] = completion_map.get(challenge_id, challenge.get('completed', False))
             
             completed_count = sum(1 for challenge in weekly_challenges if challenge.get('completed', False))
             total_challenges = len(weekly_challenges)
@@ -736,163 +711,243 @@ if user:
             progress_percentage = (completed_count / total_challenges * 100) if total_challenges > 0 else 0
             
             # Progress header
-            col1, col2, col3 = st.columns([2, 1, 1])
+            col1, col2 = st.columns([2, 1])
             with col1:
                 st.markdown(f"### 📊 Progress: {completed_count}/{total_challenges} Challenges")
             with col2:
-                st.metric("Daily Tasks", "🔓 Unlocked" if completed_count >= 3 else "🔒 Locked")
-            with col3:
                 st.metric("Completion", f"{progress_percentage:.0f}%")
             
             # Progress bar
             st.progress(progress_percentage / 100)
             
             if completed_count >= 3:
-                st.success("🎉 Great progress! You've unlocked daily challenges!")
+                st.success("🎉 Great progress! Keep up the excellent work!")
             elif completed_count >= 1:
-                st.info(f"💪 Keep going! Complete {3 - completed_count} more challenges to unlock daily tasks.")
+                st.info(f"💪 Keep going! You're making great progress!")
             else:
-                st.info("🚀 Start completing challenges to unlock daily task rewards!")
+                st.info("🚀 Start completing challenges to build sustainable habits!")
             
             st.markdown("---")
-            
-            # Display daily tasks if unlocked (only if we have a valid weekly_plan_id)
-            if weekly_plan_id:
-                daily_tasks = get_daily_tasks(user.id, weekly_plan_id)
-                if daily_tasks:
-                    st.subheader("🔄 Your Daily Challenges")
-                    st.info("🎁 Congratulations! You've unlocked these daily tasks by completing 3+ weekly challenges!")
-                    
-                    for i, task in enumerate(daily_tasks, 1):
-                        task_completed = task.get('completed', False)
-                        status_icon = "✅" if task_completed else "⏳"
-                        
-                        with st.expander(f"{status_icon} Daily Task {i}: {task.get('title', 'Daily Task')}"):
-                            st.write(f"**Action:** {task.get('action', '')}")
-                            st.write(f"**Why:** {task.get('why', '')}")
-                            st.write(f"**Impact:** {task.get('impact', 'Builds sustainable habits')}")
-                            
-                            if not task_completed:
-                                if st.button(f"✅ Complete Daily Task {i}", key=f"complete_daily_{i}"):
-                                    # Save daily task completion
-                                    task_id = f"daily_task_{i}"
-                                    success = save_task_completion(
-                                        user.id, 
-                                        weekly_plan_id, 
-                                        task_id, 
-                                        task.get('title', f'Daily Task {i}'), 
-                                        'daily'
-                                    )
-                                    
-                                    if success:
-                                        task['completed'] = True
-                                        st.success(f"🎉 Daily task {i} completed!")
-                                        st.balloons()
-                                        st.rerun()
-                                    else:
-                                        st.error("Failed to save completion. Please try again.")
-                
-                st.markdown("---")
             
             # Weekly Challenges Section
             st.subheader("🎯 Weekly Challenges")
             
-            for i, challenge in enumerate(weekly_challenges, 1):
-                challenge_completed = challenge.get('completed', False)
-                task_type = challenge.get('task_type', 'weekly')
-                status_icon = "✅" if challenge_completed else "⏳"
-                type_badge = "🔄 Daily" if task_type == "daily" else "📅 Long-term"
+            if not weekly_challenges:
+                st.info("No challenges available. Generate new challenges to get started!")
+            else:
+                st.info(f"**This Week's Focus:** {week_focus} | **Total Challenges:** {len(weekly_challenges)}")
                 
-                with st.expander(f"{status_icon} {type_badge} Challenge {i}: {challenge.get('title', 'Weekly Challenge')}"):
-                    # Handle both old and new data structures
-                    description = challenge.get('action', challenge.get('description', ''))
-                    if description:
-                        st.write(f"**Action:** {description}")
+                for i, challenge in enumerate(weekly_challenges, 1):
+                    challenge_completed = challenge.get('completed', False)
+                    challenge_title = challenge.get('title', f'Challenge {i}')
+                    challenge_difficulty = challenge.get('difficulty', challenge.get('difficulty_level', 'medium')).upper()
+                    # Handle all possible CO2 savings field names from the JSON structure
+                    co2_savings = challenge.get('co2_savings_kg', challenge.get('co2_savings', challenge.get('estimated_co2_savings_kg', 0)))
                     
-                    # Why this matters
-                    why_text = challenge.get('why', challenge.get('personalized_why', ''))
-                    if why_text:
-                        st.write(f"**Why this matters:** {why_text}")
+                    # Color coding for difficulty
+                    difficulty_colors = {
+                        'EASY': '#4CAF50',
+                        'MEDIUM': '#FF9800', 
+                        'HARD': '#F44336'
+                    }
+                    difficulty_color = difficulty_colors.get(challenge_difficulty, '#666')
                     
-                    # Implementation steps
-                    implementation_steps = challenge.get('steps', challenge.get('implementation_steps', []))
-                    if implementation_steps:
-                        st.write("**How to do it:**")
-                        for step in implementation_steps:
-                            st.write(f"• {step}")
-                    
-                    # Challenge metrics
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        difficulty = challenge.get('difficulty', challenge.get('difficulty_level', 'medium'))
-                        st.metric("Difficulty", difficulty.title())
-                    with col2:
-                        co2_savings = challenge.get('co2_savings', challenge.get('estimated_co2_savings_kg', 0))
-                        st.metric("CO₂ Savings", f"{co2_savings} kg")
-                    with col3:
-                        deadline = challenge.get('deadline', challenge.get('completion_deadline', 'This week'))
-                        st.metric("Deadline", deadline)
-                    with col4:
-                        st.metric("Type", task_type.title())
-                    
-                    # Complete button (only if not completed)
-                    if not challenge_completed:
-                        if st.button(f"✅ Complete Challenge {i}", key=f"complete_challenge_{i}"):
-                            # Save task completion to database only if we have a valid weekly_plan_id
-                            success = False
-                            if weekly_plan_id:
-                                task_id = f"challenge_{i}"
-                                task_title = challenge.get('title', f'Weekly Challenge {i}')
-                                task_type = challenge.get('task_type', 'weekly')
-                                
-                                success = save_task_completion(
-                                    user.id, 
-                                    weekly_plan_id, 
-                                    task_id, 
-                                    task_title, 
-                                    task_type
-                                )
-                            else:
-                                st.error("❌ Cannot save completion: No valid weekly plan found in database.")
-                            
-                            if success:
-                                # Update in-memory status
-                                challenge['completed'] = True
-                                st.success(f"🎉 Great job! Challenge {i} completed!")
-                                
-                                # Check if this triggers daily tasks generation
-                                completed_count = get_completed_tasks_count(user.id, weekly_plan_id)
-                                if completed_count >= 3:
-                                    if not get_daily_tasks(user.id, weekly_plan_id):
-                                        st.info("🎉 You've unlocked daily challenges! Generating new daily tasks...")
-                                        
-                                        # Generate daily tasks using Agent 3
-                                        try:
-                                            from data_model.database import get_latest_scoring_results, get_user_onboarding_data
-                                            scoring_results = get_latest_scoring_results(user.id)
-                                            user_onboarding_data = get_user_onboarding_data(user.id)
-                                            
-                                            daily_results = run_daily_tasks_generation_workflow(
-                                                user.id, 
-                                                [{'completed_count': completed_count}]  # Pass completed tasks info
-                                            )
-                                            
-                                            if daily_results and hasattr(daily_results, 'raw'):
-                                                daily_tasks_data = json.loads(daily_results.raw)
-                                                daily_tasks = daily_tasks_data.get('daily_tasks', [])
-                                                
-                                                # Save daily tasks to database
-                                                save_daily_tasks(user.id, weekly_plan_id, daily_tasks)
-                                                st.success("🎁 New daily challenges generated!")
-                                        except Exception as e:
-                                            st.error(f"Error generating daily tasks: {str(e)}")
-                                
-                                st.balloons()
-                                st.rerun()
-                            else:
-                                st.error("Failed to save task completion. Please try again.")
+                    # Status styling
+                    if challenge_completed:
+                        card_style = "background: #E8F5E8; border-left: 5px solid #4CAF50;"
+                        status_icon = "✅"
                     else:
-                        st.success("✅ Challenge completed!")
+                        card_style = "background: white; border-left: 5px solid #2196F3;"
+                        status_icon = "⏳"
+                    
+                    # Challenge card
+                    col1, col2 = st.columns([4, 1])
+                    
+                    with col1:
+                        # Handle both old and new data structures for description
+                        description = challenge.get('description', challenge.get('action', ''))
+                        category = challenge.get('category', 'General').title()
+                        time_required = challenge.get('time_required', challenge.get('time', 'N/A'))
+                        
+                        st.markdown(f"""
+                        <div style="{card_style} border-radius: 12px; padding: 1.5rem; margin: 1rem 0; 
+                                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                <h4 style="color: #2C3E50; margin: 0; flex: 1;">
+                                    {status_icon} {challenge_title}
+                                </h4>
+                                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                    <span style="background: {difficulty_color}; color: white; padding: 0.3rem 0.8rem; 
+                                                border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                                        {challenge_difficulty}
+                                    </span>
+                                    <span style="background: #E3F2FD; color: #1976D2; padding: 0.3rem 0.8rem; 
+                                                border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                                        {co2_savings} kg CO₂
+                                    </span>
+                                    <span style="background: #F3E5F5; color: #7B1FA2; padding: 0.3rem 0.8rem; 
+                                                border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                                        {category}
+                                    </span>
+                                </div>
+                            </div>
+                            <p style="color: #666; margin-bottom: 0.8rem; line-height: 1.5;">
+                                {description}
+                            </p>
+                            <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #666;">
+                                <span>⏱️ Time: {time_required}</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col2:
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        if not challenge_completed:
+                            if st.button(f"✅ Finish", key=f"complete_challenge_{i}", type="primary", use_container_width=True):
+                                # Save task completion to database
+                                success = False
+                                if weekly_plan_id:
+                                    # Use the challenge's ID if available, otherwise use index-based format
+                                    task_id = challenge.get('id', f"challenge_{i}")
+                                    task_title = challenge.get('title', f'Weekly Challenge {i}')
+                                    task_type = challenge.get('task_type', 'weekly')
+                                    
+                                    success = save_task_completion(
+                                        user.id, 
+                                        weekly_plan_id, 
+                                        task_id, 
+                                        task_title, 
+                                        task_type
+                                    )
+                                else:
+                                    st.error("❌ Cannot save completion: No valid weekly plan found.")
+                                
+                                if success:
+                                    # Update in-memory status
+                                    challenge['completed'] = True
+                                    st.success(f"🎉 Challenge {i} completed!")
+                                    st.balloons()
+                                    st.rerun()
+                                else:
+                                    st.error("Failed to save completion.")
+                        else:
+                            st.success("✅ Done!")
+                
+                # Progress summary
+                if len(weekly_challenges) > 0:
+                    st.markdown("---")
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Challenges Generated", len(weekly_challenges))
+                    with col2:
+                        st.metric("Completed", completed_count)
+                    with col3:
+                        progress_pct = (completed_count / len(weekly_challenges) * 100) if len(weekly_challenges) > 0 else 0
+                        st.metric("Progress", f"{progress_pct:.0f}%")
+                    
+                    # Motivational message
+                    if planner_data.get('motivation') or planner_data.get('motivation_message'):
+                        motivation_msg = planner_data.get('motivation', planner_data.get('motivation_message'))
+                        st.info(f"💪 **{motivation_msg}**")
+
+            # Feedback Section after challenges
+            st.markdown("---")
+            st.subheader("💬 Customize Your Plan")
+            
+            # Display current feedback status
+            current_feedback = get_current_week_feedback(user.id)
+            feedback_history = get_user_feedback_history(user.id, limit=2)
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                # Feedback input
+                feedback_text = st.text_area(
+                    "Share your thoughts:",
+                    placeholder="Examples:\n• These challenges are too hard\n• I want more money-saving tips\n• Give me more home-based tasks\n• I don't have a car, focus on other areas",
+                    height=100,
+                    help="Your feedback helps our AI adapt your challenges to your preferences and constraints.",
+                    key="feedback_text_area_after_challenges"
+                )
+                
+                col_submit, col_regenerate = st.columns([1, 1])
+                
+                with col_submit:
+                    if st.button("💾 Save Feedback", type="primary", key="save_feedback_after_challenges"):
+                        if feedback_text.strip():
+                            with st.spinner("Processing your feedback..."):
+                                success = save_feedback_and_process(user.id, feedback_text)
+                                if success:
+                                    st.success("✅ Feedback saved! Use 'Regenerate Plan' to apply changes.")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Failed to save feedback. Please try again.")
+                        else:
+                            st.warning("Please enter some feedback before saving.")
+                
+                with col_regenerate:
+                    if st.button("🔄 Regenerate Plan", type="secondary", key="regenerate_plan_after_challenges"):
+                        if current_feedback and current_feedback.get('feedback_summary'):
+                            with st.spinner("🤖 Creating personalized plan based on your feedback..."):
+                                try:
+                                    ## AGENT 3 - FEEDBACK AWARE PLANNING accessed
+                                    ## ==========================================
+                                    # Run feedback-aware planning workflow with the saved feedback
+                                    results = run_feedback_aware_planning_workflow(user.id, raw_feedback=current_feedback.get('user_feedback', ''))
+                                    
+                                    if results:
+                                        # Parse and save the new plan
+                                        from agent.utils import parse_agent3_text_output
+                                        
+                                        new_plan = parse_agent3_text_output(results, task_type="feedback_aware")
+                                        
+                                        if new_plan:
+                                            # Save the new plan
+                                            from data_model.database import save_weekly_plan_results, create_agent_session
+                                            session_id = create_agent_session(user.id, "feedback_planning", "Feedback-aware planning")
+                                            save_weekly_plan_results(user.id, session_id, new_plan)
+                                            
+                                            st.success("✅ Your plan has been updated based on your feedback!")
+                                            st.balloons()
+                                            st.rerun()
+                                        else:
+                                            st.error("❌ Failed to parse AI response")
+                                    else:
+                                        st.error("Failed to generate new plan")
+                                        
+                                except Exception as e:
+                                    st.error(f"Error regenerating plan: {str(e)}")
+                        else:
+                            st.info("💡 Please provide feedback first, then regenerate your plan.")
+            
+            with col2:
+                # Display feedback history
+                if feedback_history:
+                    st.markdown("""
+                    <div style="background: #F3E5F5; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+                        <h5 style="color: #7B1FA2; margin-bottom: 0.5rem;">📝 Recent Feedback</h5>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    for i, feedback in enumerate(feedback_history[:2]):
+                        st.markdown(f"""
+                        <div style="background: white; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.5rem; 
+                                    border-left: 4px solid #9C27B0; font-size: 0.85rem;">
+                            <strong style="color: #7B1FA2;">Week of {feedback['week_of']}:</strong><br>
+                            <span style="color: #424242;">{feedback['summary']}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div style="background: #FFF3E0; border-radius: 10px; padding: 1rem; text-align: center;">
+                        <div style="color: #E65100; font-size: 0.9rem;">
+                            💡 No feedback yet<br>
+                            <small>Share your thoughts to personalize your experience!</small>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
         
         else:
             # No planner results - show Generate Challenges button
@@ -911,52 +966,33 @@ if user:
                         from agent.crew import run_planner_workflow
                         
                         try:
+                            
                             # Create agent session for planner
                             agent_session_id = create_agent_session(user.id, "weekly_planning", "Generate challenges workflow execution from dashboard")
                             
+                            ## AGENT 3 - BASIC PLANNER (INITIAL PLANNER)
+                            ## ==========================================
                             # Run the planner workflow
                             planner_results = run_planner_workflow(user.id)
                             
-                            if planner_results and hasattr(planner_results, 'tasks_output') and planner_results.tasks_output:
+                            if planner_results:
                                 try:
-                                    raw_output = planner_results.tasks_output[0].raw
+                                    # Parse JSON using existing function
+                                    from agent.utils import parse_text_to_json
+                                    weekly_plan_data = parse_text_to_json(planner_results)
                                     
-                                    # Try to parse JSON with fallback handling
-                                    try:
-                                        weekly_plan_data = json.loads(raw_output)
-                                    except json.JSONDecodeError:
-                                        # Try to extract JSON from raw output
-                                        if "{" in raw_output:
-                                            start_idx = raw_output.find("{")
-                                            # Find matching closing brace
-                                            brace_count = 0
-                                            end_idx = -1
-                                            for i, char in enumerate(raw_output[start_idx:], start_idx):
-                                                if char == '{':
-                                                    brace_count += 1
-                                                elif char == '}':
-                                                    brace_count -= 1
-                                                    if brace_count == 0:
-                                                        end_idx = i + 1
-                                                        break
-                                            
-                                            if end_idx > start_idx:
-                                                json_content = raw_output[start_idx:end_idx]
-                                                weekly_plan_data = json.loads(json_content)
-                                            else:
-                                                raise json.JSONDecodeError("Could not find complete JSON", raw_output, 0)
-                                        else:
-                                            raise json.JSONDecodeError("No JSON found", raw_output, 0)
-                                    
-                                    # Save the results
-                                    save_agent_results(user.id, 'planner', weekly_plan_data, agent_session_id)
-                                    save_weekly_plan_results(user.id, agent_session_id, weekly_plan_data)
-                                    update_agent_session(agent_session_id, "completed", weekly_plan_data)
-                                    
-                                    st.success("✅ Weekly challenges generated successfully!")
-                                    st.balloons()
-                                    st.rerun()
-                                    
+                                    if weekly_plan_data:
+                                        # Save the results
+                                        save_agent_results(user.id, 'planner', weekly_plan_data, agent_session_id)
+                                        save_weekly_plan_results(user.id, agent_session_id, weekly_plan_data)
+                                        update_agent_session(agent_session_id, "completed", weekly_plan_data)
+                                        
+                                        st.success("✅ Weekly challenges generated successfully!")
+                                        st.balloons()
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Failed to parse AI response")
+                                        update_agent_session(agent_session_id, "failed", {"error": "JSON parsing failed"})
                                 except Exception as e:
                                     st.error(f"Error processing planner results: {str(e)}")
                                     update_agent_session(agent_session_id, "failed", {"error": str(e)})
@@ -976,7 +1012,7 @@ if user:
     # Agent 3 Update Section - Available to all users with completed analysis
     if agent_results and agent_results.get('carbon_footprint_data'):
         st.markdown("---")
-        st.subheader("📝 Share Your Progress with Agent 3")
+        st.subheader("📝 Share Your Progress")
         st.info("💬 Tell us about your recent sustainability actions or challenges. Agent 3 will update your weekly plan based on your feedback!")
         
         # User update text input
@@ -999,45 +1035,38 @@ if user:
                         from data_model.database import get_user_onboarding_data, save_agent_results, create_agent_session, update_agent_session
                         user_onboarding_data = get_user_onboarding_data(user.id)
                         
+                        ## AGENT 3 - UPDATE-PLANNER
+                        ## ==========================================
                         # Run Agent 3 update workflow
                         update_results = run_update_planning_workflow(
                             user.id,
                             user_update
                         )
                         
-                        if update_results and hasattr(update_results, 'tasks_output') and update_results.tasks_output:
+                        if update_results:
                             try:
-                                raw_output = update_results.tasks_output[0].raw
+                                # Parse the updated plan using existing function
+                                from agent.utils import parse_agent3_text_output
+                                updated_plan_data = parse_agent3_text_output(update_results, task_type="update_planning", user_update_text=user_update)
                                 
-                                # Parse the updated plan
-                                if raw_output.strip().startswith('{'):
-                                    updated_plan_data = json.loads(raw_output)
+                                if updated_plan_data:
+                                    # Create new agent session for the update
+                                    agent_session_id = create_agent_session(user.id, "weekly_planning", f"Plan update based on user feedback: {user_update[:50]}...")
+                                    
+                                    # Save updated results
+                                    save_agent_results(user.id, 'planner', updated_plan_data, agent_session_id)
+                                    update_agent_session(agent_session_id, "completed", updated_plan_data)
+                                    
+                                    # Also save to weekly_plans table
+                                    save_weekly_plan_results(user.id, agent_session_id, updated_plan_data)
+                                    
+                                    st.success("✅ Your plan has been updated successfully based on your feedback!")
+                                    st.balloons()
+                                    st.rerun()
                                 else:
-                                    # Extract JSON from text
-                                    start = raw_output.find('{')
-                                    end = raw_output.rfind('}') + 1
-                                    if start != -1 and end > start:
-                                        updated_plan_data = json.loads(raw_output[start:end])
-                                    else:
-                                        raise json.JSONDecodeError("No valid JSON found", raw_output, 0)
-                                
-                                # Create new agent session for the update
-                                agent_session_id = create_agent_session(user.id, "weekly_planning", f"Plan update based on user feedback: {user_update[:50]}...")
-                                
-                                # Save updated results
-                                save_agent_results(user.id, 'planner', updated_plan_data, agent_session_id)
-                                update_agent_session(agent_session_id, "completed", updated_plan_data)
-                                
-                                # Also save to weekly_plans table
-                                save_weekly_plan_results(user.id, agent_session_id, updated_plan_data)
-                                
-                                st.success("✅ Your plan has been updated successfully based on your feedback!")
-                                st.balloons()
-                                st.rerun()
-                                
-                            except json.JSONDecodeError as e:
-                                st.error(f"❌ Failed to parse Agent 3 response: {str(e)}")
-                                st.text_area("Raw Agent 3 output:", raw_output, height=200)
+                                    st.error("❌ Failed to parse Agent 3 response")
+                            except Exception as e:
+                                st.error(f"❌ Error running Agent 3 update: {str(e)}")
                         else:
                             st.error("❌ Agent 3 failed to generate updated plan")
                             
@@ -1046,104 +1075,7 @@ if user:
             else:
                 st.warning("⚠️ Please enter some feedback before updating your plan.")
         
-        # Add standalone regenerate section
-        st.markdown("---")
-        st.subheader("🔄 Quick Plan Refresh")
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            st.info("🎲 Want fresh challenges without providing feedback? Generate a completely new weekly plan!")
-        
-        with col2:
-            if st.button("🔄 Generate New Plan", type="secondary", use_container_width=True):
-                with st.spinner("🤖 Agent 3 is creating fresh challenges for you..."):
-                    try:
-                        # Run the basic planner workflow to generate a new plan
-                        new_plan_results = run_planner_workflow(user.id)
-                        
-                        if new_plan_results and hasattr(new_plan_results, 'raw'):
-                            # Parse and save the new plan
-                            import json
-                            import re
-                            
-                            raw_output = str(new_plan_results.raw)
-                            print(f"🐛 Debug - Raw AI output (standalone): {raw_output[:500]}...")  # Debug info
-                            
-                            # More robust JSON extraction (same function as above)
-                            def extract_and_parse_json(text):
-                                """Extract and parse JSON from AI response with multiple fallback strategies"""
-                                
-                                # Strategy 1: Look for complete JSON object
-                                json_pattern = r'\{(?:[^{}]|{[^{}]*})*\}'
-                                matches = re.findall(json_pattern, text, re.DOTALL)
-                                
-                                for match in matches:
-                                    try:
-                                        return json.loads(match)
-                                    except json.JSONDecodeError:
-                                        continue
-                                
-                                # Strategy 2: Find JSON between specific markers
-                                start_markers = ['{', '```json\n{', '```\n{']
-                                end_markers = ['}', '}\n```', '}\n```']
-                                
-                                for start_marker, end_marker in zip(start_markers, end_markers):
-                                    start_idx = text.find(start_marker)
-                                    if start_idx != -1:
-                                        end_idx = text.rfind(end_marker)
-                                        if end_idx > start_idx:
-                                            json_candidate = text[start_idx:end_idx + len(end_marker.rstrip())]
-                                            try:
-                                                return json.loads(json_candidate)
-                                            except json.JSONDecodeError:
-                                                continue
-                                
-                                # Strategy 3: Try to fix common JSON issues
-                                # Remove markdown code blocks
-                                cleaned = re.sub(r'```json\s*', '', text)
-                                cleaned = re.sub(r'```\s*', '', cleaned)
-                                
-                                # Find the largest JSON-like structure
-                                json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
-                                if json_match:
-                                    json_text = json_match.group(0)
-                                    
-                                    # Try to fix common issues
-                                    # Fix trailing commas
-                                    json_text = re.sub(r',(\s*[}\]])', r'\1', json_text)
-                                    
-                                    try:
-                                        return json.loads(json_text)
-                                    except json.JSONDecodeError:
-                                        pass
-                                
-                                return None
-                            
-                            # Extract JSON using robust method
-                            new_plan = extract_and_parse_json(raw_output)
-                            
-                            if new_plan:
-                                # Save the new plan
-                                from data_model.database import save_weekly_plan_results, create_agent_session, save_agent_results, update_agent_session
-                                
-                                # Create session and save results
-                                session_id = create_agent_session(user.id, "fresh_planning", "Fresh weekly plan generation")
-                                save_agent_results(user.id, 'planner', new_plan, session_id)
-                                update_agent_session(session_id, "completed", new_plan)
-                                save_weekly_plan_results(user.id, session_id, new_plan)
-                                
-                                st.success("✅ Fresh weekly plan generated!")
-                                st.balloons()
-                                st.rerun()
-                            else:
-                                st.error("❌ Failed to extract valid JSON from AI response")
-                                with st.expander("🔍 Debug: View Raw AI Output"):
-                                    st.text_area("Raw output for debugging:", raw_output, height=300)
-                        else:
-                            st.error("Failed to generate new plan")
-                            
-                    except Exception as e:
-                        st.error(f"Error generating fresh plan: {str(e)}")
+
     
     else:
         # No carbon analysis results available yet - show waiting message
@@ -1179,35 +1111,24 @@ if user:
                         # Run the planner workflow
                         planner_results = run_planner_workflow(user.id)
                         
-                        if planner_results and hasattr(planner_results, 'tasks_output') and planner_results.tasks_output:
+                        if planner_results:
                             try:
-                                raw_output = planner_results.tasks_output[0].raw
+                                # Parse JSON using existing function
+                                from agent.utils import parse_text_to_json
+                                weekly_plan_data = parse_text_to_json(planner_results)
                                 
-                                # Try to parse JSON
-                                try:
-                                    weekly_plan_data = json.loads(raw_output)
-                                except json.JSONDecodeError:
-                                    # Try to extract JSON from raw output
-                                    if "{" in raw_output:
-                                        start_idx = raw_output.find("{")
-                                        end_idx = raw_output.rfind("}") + 1
-                                        if start_idx != -1 and end_idx > start_idx:
-                                            json_content = raw_output[start_idx:end_idx]
-                                            weekly_plan_data = json.loads(json_content)
-                                        else:
-                                            raise json.JSONDecodeError("Could not find complete JSON", raw_output, 0)
-                                    else:
-                                        raise json.JSONDecodeError("No JSON found", raw_output, 0)
-                                
-                                # Save the results
-                                save_agent_results(user.id, 'planner', weekly_plan_data, agent_session_id)
-                                save_weekly_plan_results(user.id, agent_session_id, weekly_plan_data)
-                                update_agent_session(agent_session_id, "completed", weekly_plan_data)
-                                
-                                st.success("✅ Weekly challenges generated successfully!")
-                                st.balloons()
-                                st.rerun()
-                                
+                                if weekly_plan_data:
+                                    # Save the results
+                                    save_agent_results(user.id, 'planner', weekly_plan_data, agent_session_id)
+                                    save_weekly_plan_results(user.id, agent_session_id, weekly_plan_data)
+                                    update_agent_session(agent_session_id, "completed", weekly_plan_data)
+                                    
+                                    st.success("✅ Weekly challenges generated successfully!")
+                                    st.balloons()
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Failed to parse AI response")
+                                    update_agent_session(agent_session_id, "failed", {"error": "JSON parsing failed"})
                             except Exception as e:
                                 st.error(f"Error processing results: {str(e)}")
                                 update_agent_session(agent_session_id, "failed", {"error": str(e)})

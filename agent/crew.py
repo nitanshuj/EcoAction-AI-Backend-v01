@@ -57,7 +57,7 @@ def run_analyst_workflow(user_id):
         agents=[analyst_agent],
         tasks=[analyst_task],
         process=Process.sequential,
-        verbose=False,
+        verbose=True,
         memory=False
     )
     
@@ -82,7 +82,7 @@ def create_analyst_crew(user_data):
         agents=[analyst_agent, planner_agent],
         tasks=[analyst_task, benchmarking_task, planning_task],
         process=Process.sequential,
-        verbose=False,
+        verbose=True,
         memory=False
     )
     

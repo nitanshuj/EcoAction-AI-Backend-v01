@@ -26,16 +26,16 @@ os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 # - ""
 
 
-# Google LLM Modes (Configuration)
-# --------------------------------
-def configure_gemini_llm(model="gemini-2.0-flash"):
-    return LLM(
-        model=model,
-        provider="google",
-        api_key=os.getenv("GOOGLE_API_KEY")
-    )
-llm_gemini_2_0_flash = configure_gemini_llm("gemini-2.0-flash") 
-llm_gemini_2_0_flash_lite = configure_gemini_llm("gemini-2.0-flash-lite")
+# # Google LLM Modes (Configuration)
+# # --------------------------------
+# def configure_gemini_llm(model="gemini-2.0-flash"):
+#     return LLM(
+#         model=model,
+#         provider="google",
+#         api_key=os.getenv("GOOGLE_API_KEY")
+#     )
+# llm_gemini_2_0_flash = configure_gemini_llm("gemini-2.0-flash") 
+# llm_gemini_2_0_flash_lite = configure_gemini_llm("gemini-2.0-flash-lite")
 
 # llm_gemini_2_0_flash_lite = genai.GenerativeModel("gemini-2.0-flash-lite")
 # llm_gemini_2_0_flash = genai.GenerativeModel("gemini-2.0-flash")
@@ -48,7 +48,7 @@ llm_gpt_5_mini = "openai/gpt-5-mini-2025-08-07"
 
 llm_agent_1_profiler = llm_gpt_4_1_nano
 llm_agent_2_analyst = llm_gpt_4_1_nano
-llm_agent_3_planner = llm_gpt_4_1_mini  # Using the more powerful mini model for Agent 3
+llm_agent_3_planner = llm_gpt_4_1_nano  # Using the more powerful mini model for Agent 3
 
 ## Agent 1: User Profiler Agent
 # This agent analyzes user onboarding data, extracts insights from additional_info,
@@ -95,21 +95,29 @@ def create_analyst_agent():
     return Agent(
         role="Senior Quantitative Insight Specialist",
         
-        goal="Analyze enriched user profiles to calculate precise carbon footprints, validate key reduction levers, " \
+        goal="Analyze enriched user profiles to calculate precise carbon footprints, " \
+        "validate key reduction levers, " \
         "and generate personalized insights that connect emissions data with user psychology. " \
-        "Focus on actionable recommendations aligned with user motivations and barriers.",
+        "",
         
         backstory="You are an expert carbon analyst who specializes in translating complex emissions data into " \
         "personalized, actionable insights. You excel at validating reduction opportunities and creating " \
         "psychologically-informed recommendations that resonate with individual users' motivations and overcome their barriers.",
        
-        verbose=False,  # Disable verbose to avoid showing thinking
+        verbose=True,  # Disable verbose to avoid showing thinking
         allow_delegation=False,
         
-        llm=llm_agent_2_analyst,
+        # llm=llm_agent_2_analyst,
+        llm = LLM(
+                model="openai/gpt-4.1-nano-2025-04-14",
+                provider="openai",
+                api_key=os.getenv("AI_ML_API_KEY"),
+                base_url="https://api.aimlapi.com/v1",
+                max_tokens=4064  # or higher
+            ),
         tools=[],  # Remove tools that might cause thinking loops
-        max_iter=1,  # Force single iteration
-        max_execution_time=120,  # Increased timeout for complex analysis
+        max_iter=2,  # Force single iteration
+        max_execution_time=200,  # Increased timeout for complex analysis
     )
 
 

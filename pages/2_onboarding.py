@@ -360,6 +360,18 @@ with st.sidebar:
         st.rerun()
     st.markdown("---")
     st.caption("EcoAction AI v1.0")
+    
+    # # Logout button
+    # if st.button("🚪 Logout", type="primary", use_container_width=True):
+    #     # Clear the session state for authentication
+    #     if 'authenticated' in st.session_state:
+    #         del st.session_state['authenticated']
+    #     if 'user' in st.session_state:
+    #         del st.session_state['user']
+        
+    #     st.success("✅ Successfully logged out!")
+    #     st.rerun()
+
 
 # Header
 st.title("🌱 Welcome to EcoAction AI!")

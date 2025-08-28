@@ -1302,7 +1302,7 @@ Summary:"""
         return summary
         
     except Exception as e:
-        st.error(f"Error processing feedback text: {str(e)}")
+        print(f"Error processing feedback text: {str(e)}")
         # Return a basic fallback summary
         return f"User provided feedback: {raw_feedback[:50]}{'...' if len(raw_feedback) > 50 else ''}"
 

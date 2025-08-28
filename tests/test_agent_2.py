@@ -61,7 +61,7 @@ def test_analyst_agent():
     
     try:
         print("🧪 Testing Analyst Agent (Agent 2)...")
-        print(f"📋 Input enriched profile: {json.dumps(sample_enriched_profile, indent=2)}")
+        # print(f"📋 Input enriched profile: {json.dumps(sample_enriched_profile, indent=2)}")
         
         # For testing, we'll create a temporary test that directly uses the task
         from agent.agents import create_analyst_agent
@@ -88,6 +88,10 @@ def test_analyst_agent():
         # Execute workflow
         results = crew.kickoff()
         
+        print("="*70)
+        print(results)
+        print("="*70)
+
         if results:
             print("✅ Analyst workflow completed!")
             

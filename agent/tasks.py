@@ -133,7 +133,7 @@ def create_analyst_task(agent, enriched_profile_data):
             "- 'Digital Footprint' (not 'digital_footprint_kg')\n"
             "- 'Other' (not 'other_kg')\n\n"
             
-            "PSYCHOGRAPHIC INTEGRATION (keep insights precise):\n"
+            "PSYCHOGRAPHIC INTEGRATION (keep insights precise - under 10 words):\n"
             "- Connect high emissions with user motivations (e.g., 'saving money' + energy use)\n"
             "- Address barriers with specific actions (e.g., 'not knowing what to do' + simple steps)\n"
             "- Link goals to emission reductions (e.g., 'reduce footprint' + quantified impact)\n\n"
@@ -184,10 +184,10 @@ def create_analyst_task(agent, enriched_profile_data):
             '  "calculation_method": "brief method",\n'
             '  "data_confidence": "high/medium/low"\n'
             "}\n"
-            "CRITICAL: Return ONLY valid JSON. Keep psychographic insights precise and actionable."
+            "CRITICAL: Respond ONLY with a valid, complete JSON object. Do not cut off your answer. Always close all brackets and quotes. Keep psychographic insights precise and actionable."
         ),
         agent=agent,
-        async_execution=False,
+        async_execution=True,
         output_json=AnalystAgentOutput,
     )
     

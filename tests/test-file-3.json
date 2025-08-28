@@ -1,0 +1,130 @@
+{
+  "narrative_text": "Living in a modest apartment in Bloomington, Indiana, this user is environmentally motivated yet faces challenges like time and knowledge gaps. They mainly drive a petrol sedan for short commutes, occasionally using public transit, and are interested in reducing their flight travel. Their diet is lightly meat-based, with some waste, and they actively recycle but aim to do so more consistently. Focused on lowering their carbon footprint and bills, they seek actionable, sustainable lifestyle changes.",
+  "demographics": {
+    "climate": "Temperate",
+    "location": "Bloomington, Indiana, United States",
+    "home_type": "Apartment",
+    "ownership": "Rent",
+    "household_size": 2
+  },
+  "lifestyle_habits": {
+    "diet": {
+      "type": "Omnivore",
+      "food_waste": "Sometimes",
+      "meat_frequency": "Once a month"
+    },
+    "energy_usage": {
+      "ac_usage": "Sometimes",
+      "heating_source": "Electricity",
+      "energy_conservation_habits": "Often"
+    },
+    "transportation": {
+      "car_type": "Sedan",
+      "primary_mode": "Personal Car",
+      "commute_details": "10 miles, weekly public transport, occasional rideshare"
+    }
+  },
+  "consumption_patterns": {
+    "plastic_usage": "Sometimes",
+    "recycling_habit": "Sometimes",
+    "shopping_frequency": "A few times a week"
+  },
+  "psychographic_insights": {
+    "goals": [
+      "Reducing carbon footprint",
+      "Saving money on bills"
+    ],
+    "barriers": [
+      "Not knowing what to do",
+      "Lack of time",
+      "Laziness"
+    ],
+    "motivations": [
+      "Protecting the environment"
+    ]
+  },
+  "key_levers": [
+    "Increase recycling efforts consistently",
+    "Reduce car usage by 30% and shift to more public transport or biking",
+    "Implement home insulation to cut electricity usage",
+    "Cut down on flights by exploring local alternatives or virtual meetings",
+    "Enhance energy conservation habits further"
+  ],
+  "total_carbon_footprint_kg": 2784.0,
+  "total_carbon_footprint_tonnes": 2.784,
+  "category_breakdown": {
+    "diet_kg": 4.66,
+    "other_kg": 0.0,
+    "shopping_kg": 60.0,
+    "home_energy_kg": 576.0,
+    "transportation_kg": 1194.0,
+    "digital_footprint_kg": 0.144
+  },
+  "sustainability_score": 6.5,
+  "score_category": "moderate",
+  "regional_comparison": {
+    "user_location": "Bloomington, Indiana, United States",
+    "local_average_kg": 3300.0,
+    "comparison_status": "below",
+    "percentage_difference": 15.8
+  },
+  "key_lever_validations": [
+    {
+      "lever": "Increase recycling efforts consistently",
+      "validated": true,
+      "impact_category": "Shopping",
+      "validation_reason": "Enhanced recycling directly reduces waste and associated embodied emissions.",
+      "potential_reduction_kg": 12.0
+    },
+    {
+      "lever": "Reduce car usage by 30% and shift to more public transport or biking",
+      "validated": true,
+      "impact_category": "Transportation",
+      "validation_reason": "Switching to active or public transport significantly cuts travel-related emissions.",
+      "potential_reduction_kg": 358.0
+    },
+    {
+      "lever": "Implement home insulation to cut electricity usage",
+      "validated": true,
+      "impact_category": "Home Energy",
+      "validation_reason": "Better insulation reduces electricity needs, lowering energy-related emissions.",
+      "potential_reduction_kg": 115.0
+    }
+  ],
+  "psychographic_insights_analyst": [
+    {
+      "insight_text": "Connecting performing simple recycling more consistently aligns with your goal of reducing your overall footprint and saving money.",
+      "addresses_barrier": "Not knowing what to do",
+      "related_motivation": "Saving money on bills",
+      "actionable_next_step": "Set weekly recycling reminders and learn local recycling guidelines to improve consistency."
+    },
+    {
+      "insight_text": "Reducing car trips by adopting more public transit or biking can help you lower your transportation footprint and contribute to a healthier environment.",
+      "addresses_barrier": "Habitual car reliance",
+      "related_motivation": "Environmental concern",
+      "actionable_next_step": "Explore local transit options and plan for biking as an alternative for short trips."
+    }
+  ],
+  "top_impact_categories": [
+    "Transportation",
+    "Home Energy",
+    "Diet"
+  ],
+  "priority_reduction_areas": [
+    "Transportation",
+    "Home Energy",
+    "Shopping"
+  ],
+  "fun_comparison_facts": [
+    "Your current footprint is equivalent to approximately 600 pounds of coal burned.",
+    "If everyone in Bloomington reduced their emissions by 15%, the total reduction would be enough to power a small city for a day."
+  ],
+  "calculation_method": "Data was collected from user inputs, energy bills, transportation logs, and regional averages to estimate annual emissions.",
+  "data_confidence": "medium",
+  "profile_created_at": "2025-08-27T12:11:49.193150",
+  "profile_version": "1.0",
+  "agents_used": [
+    "profiler",
+    "analyst"
+  ]
+}

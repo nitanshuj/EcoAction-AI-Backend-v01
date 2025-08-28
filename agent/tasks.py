@@ -2,12 +2,12 @@
 from crewai import Task
 from .models import (
     ProfilerAgentOutput, 
-    AnalystAgentOutput, 
-    PlannerAgentOutput, 
-    FeedbackAwarePlannerOutput, 
-    DailyTasksOutput, 
-    UpdatePlannerOutput
+    AnalystAgentOutput
 )
+import json
+import os
+
+from .utils import parse_text_to_json, load_challenges_metadata
 
 
 ## ========================================================================
@@ -97,11 +97,9 @@ def create_profiling_task(agent, user_data):
         output_json=ProfilerAgentOutput,
     )
 
-
 # # =========================================================
 # #             Agent 2 - Analyst Agent Task
 # # =========================================================
-
 # # Task 1
 # # -----------------------------
 def create_analyst_task(agent, enriched_profile_data):
@@ -261,294 +259,228 @@ def create_benchmarking_task(agent, user_data, carbon_results):
 # #             Agent 3 - Planner Agents Tasks
 # # =========================================================
 
+from .utils import load_challenges_metadata
+
 # # Task 1
 # # -----------------------------
-def create_weekly_planning_task(agent, user_data, carbon_results, benchmark_results):
-    """Creates the weekly action planning task for Planner Agent"""
+def create_weekly_planning_task(agent, user_complete_data):
+    """
+    Creates the weekly action planning task for Planner Agent
+    
+    Args:
+        agent: The planner agent
+        user_complete_data: Complete user data including profile and carbon analysis
+    """
+    
+    # Load available challenges from metadata
+    challenges_data = load_challenges_metadata()
     
     return Task(
         description=(
-            "Create EXACTLY 6 personalized sustainability challenges based on user profile and carbon analysis.\n\n"
+            "Create EXACTLY 4 personalized sustainability challenges for this user.\n\n"
+            
+            f"USER DATA:\n{str(user_complete_data)[:400]}\n\n"
+            
+            "CHALLENGE EXAMPLES:\n"
+            f"Easy: {[c['description'][:40] + '...' for c in challenges_data['easy'][:2]]}\n"
+            f"Medium: {[c['description'][:40] + '...' for c in challenges_data['medium'][:1]]}\n"
+            f"Hard: {[c['description'][:40] + '...' for c in challenges_data['hard'][:1]]}\n\n"
             
             "CRITICAL REQUIREMENTS:\n"
-            "- MUST create exactly 6 challenges (never more, never less)\n"
-            "- MUST include 3 easy + 2 medium + 1 hard challenge\n"
-            "- NEVER delete incomplete challenges unless user specifically requests it\n"
-            "- Each challenge must be unique and actionable\n\n"
-            
-            f"USER PROFILE:\n{str(user_data)}\n\n"
-            f"CARBON ANALYSIS:\n{str(carbon_results)}\n\n"
-            
-            "CHALLENGE REQUIREMENTS:\n"
-            "- Create exactly 6 challenges total (NEVER MORE, NEVER LESS)\n"
-            "- 3 Easy challenges (simple daily habits, 5-10 minutes)\n"
-            "- 2 Medium challenges (weekly commitments, 30-60 minutes)\n"
-            "- 1 Hard challenge (significant change, 2+ hours or major lifestyle shift)\n"
-            "- Each challenge should be specific, actionable, and measurable\n"
-            "- Match challenges to user's lifestyle, barriers, and motivations\n"
-            "- Include realistic CO2 savings estimates\n"
-            "- Provide clear steps for completion\n"
-            "- Set appropriate deadlines based on difficulty\n\n"
-            
-            "DIFFICULTY DEFINITIONS:\n"
-            "- Easy: Quick daily actions (5-10 minutes), minimal effort, immediate\n"
-            "- Medium: Weekly commitments requiring some planning (30-60 minutes)\n"
-            "- Hard: Significant lifestyle changes or long-term projects (2+ hours or major change)\n\n"
-            
-            "Focus on the user's top carbon reduction opportunities from their analysis.\n"
-            "RETURN ONLY JSON - no text before or after."
+            "• Generate EXACTLY 4 challenges - NO MORE, NO LESS\n"
+            "• Structure: 2 Easy + 1 Medium + 1 Hard\n"
+            "• Select/adapt from examples OR create new ones\n"
+            "• Keep descriptions under 50 words each\n"
+            "• Focus on user's highest impact areas\n"
+            "• COMPLETE ALL 4 CHALLENGES - DO NOT STOP EARLY\n"
         ),
+
         expected_output=(
-            "A complete JSON object with EXACTLY 6 challenges:\n"
-            "{\n"
-            '  "week_focus": "Primary sustainability theme for this week",\n'
-            '  "priority_area": "Top carbon reduction area from analysis",\n'
-            '  "challenges": [\n'
-            '    {\n'
-            '      "id": "challenge_1",\n'
-            '      "title": "Challenge title (specific and actionable)",\n'
-            '      "description": "Clear description of what to do",\n'
-            '      "difficulty": "easy",\n'
-            '      "category": "diet/transport/energy/waste/consumption",\n'
-            '      "steps": ["Step 1", "Step 2", "Step 3"],\n'
-            '      "co2_savings_kg": 2.5,\n'
-            '      "time_required": "5-10 minutes daily",\n'
-            '      "deadline": "Daily this week",\n'
-            '      "success_metrics": "How to measure completion",\n'
-            '      "motivation": "Why this matters for the user",\n'
-            '      "completed": false\n'
-            '    }\n'
-            '  ],\n'
-            '  "total_potential_savings": 15.2,\n'
-            '  "motivation_message": "Encouraging message tailored to user\'s goals"\n'
-            "}\n\n"
-            "CRITICAL: Must include EXACTLY 6 challenges - 3 easy, 2 medium, 1 hard. Return only valid JSON."
+            "WEEK FOCUS: [Brief theme]\n"
+            "PRIORITY AREA: [Top impact area]\n\n"
+            
+            "CHALLENGES:\n"
+            "1. EASY - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [diet/transport/energy/waste/consumption]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "2. EASY - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "3. MEDIUM - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "4. HARD - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "TOTAL SAVINGS: [X.X kg CO2]\n"
+            "MOTIVATION MESSAGE: [Encouraging message]\n\n"
+            "IMPORTANT: Complete ALL 4 challenges before finishing."
         ),
         agent=agent,
         async_execution=False,
-        output_json=PlannerAgentOutput,
     )
 
 
-def create_feedback_aware_planning_task(agent, user_data, carbon_results, benchmark_results, feedback_history=None):
-    """Creates the feedback-aware weekly planning task for Planner Agent (Two-Tiered Memory System)"""
+# # Task 2
+# # -----------------------------
+def create_feedback_aware_planning_task(agent, user_complete_data, feedback_history=None):
+    """Creates the feedback-aware weekly planning task for Planner Agent"""
+    
+    # Load available challenges from metadata
+    challenges_data = load_challenges_metadata()
     
     # Prepare feedback context
     feedback_context = ""
     if feedback_history and len(feedback_history) > 0:
         latest_feedback = feedback_history[0]['summary']
-        feedback_context = f"\n\nUSER FEEDBACK HISTORY (Tier 2 Memory):\nLatest: {latest_feedback}\n"
-        
-        if len(feedback_history) > 1:
-            feedback_context += f"Previous: {feedback_history[1]['summary']}\n"
+        feedback_context = f"\n\nUSER FEEDBACK:\n{latest_feedback[:200]}\n"
     
     return Task(
         description=(
-            "Create EXACTLY 6 personalized challenges using the Two-Tiered Memory System. "
-            "Use user feedback to filter and adapt challenge selection.\n\n"
+            "Create EXACTLY 4 personalized challenges based on user feedback.\n\n"
             
-            "CRITICAL REQUIREMENTS:\n"
-            "- MUST create exactly 6 challenges (never more, never less)\n"
-            "- MUST include 3 easy + 2 medium + 1 hard challenge\n"
-            "- NEVER delete incomplete challenges unless user specifically requests it\n"
-            "- Each challenge must be unique and actionable\n\n"
-            
-            "RETURN ONLY JSON. No markdown, no extra text, no explanations.\n\n"
-            
-            f"USER PROFILE (Tier 1 - Stable Memory):\n{str(user_data)[:300]}...\n"
-            f"CARBON ANALYSIS:\n{str(carbon_results)[:200]}...\n"
-            f"BENCHMARK DATA:\n{str(benchmark_results)[:200]}...\n"
+            f"USER DATA:\n{str(user_complete_data)[:400]}\n\n"
             f"{feedback_context}"
             
-            "PERSONALIZATION INSTRUCTIONS:\n"
-            "1. If feedback mentions difficulty preferences, adjust challenge difficulty accordingly\n"
-            "2. If feedback mentions category preferences (transport, energy, diet), prioritize those areas\n"
-            "3. If feedback mentions motivations (money, health, convenience), highlight those benefits\n"
-            "4. If feedback mentions constraints (no car, apartment living), avoid impossible challenges\n"
-            "5. If feedback requests more variety, diversify categories\n\n"
-            
-            "Create exactly 6 personalized challenges (NEVER MORE, NEVER LESS):\n"
-            "- 3 easy challenges (simple daily habits, 5-10 minutes)\n"
-            "- 2 medium challenges (weekly commitments, 30-60 minutes)\n" 
-            "- 1 hard challenge (significant change, 2+ hours or major lifestyle shift)\n"
-            "- Adapt difficulty distribution based on user feedback\n"
-            "- Include clear steps for completion\n"
-            "- Estimate realistic CO2 savings (1-25 kg)\n"
-            "- Align with user motivations and remove barriers mentioned in feedback\n\n"
-            
-            "CRITICAL: Adapt challenge selection based on feedback while maintaining exactly 6 challenges."
-        ),
-        expected_output=(
-            "Complete JSON with EXACTLY 6 feedback-adapted challenges:\n"
-            "{\n"
-            '  "week_focus": "Theme adapted to user feedback",\n'
-            '  "priority_area": "Area from feedback and carbon analysis",\n'
-            '  "challenges": [\n'
-            '    {\n'
-            '      "id": "challenge_1",\n'
-            '      "title": "Feedback-adapted challenge title",\n'
-            '      "description": "Clear description adapted to user preferences",\n'
-            '      "difficulty": "easy",\n'
-            '      "category": "diet/transport/energy/waste/consumption",\n'
-            '      "steps": ["Step 1", "Step 2", "Step 3"],\n'
-            '      "co2_savings_kg": 2.5,\n'
-            '      "time_required": "5-10 minutes daily",\n'
-            '      "deadline": "Daily this week",\n'
-            '      "success_metrics": "How to measure completion",\n'
-            '      "motivation": "Why this matters based on user feedback",\n'
-            '      "completed": false\n'
-            '    }\n'
-            '  ],\n'
-            '  "total_potential_savings": 15.2,\n'
-            '  "motivation_message": "Encouraging message incorporating user feedback",\n'
-            '  "feedback_adaptation_notes": "How the plan was adapted based on feedback"\n'
-            "}\n\n"
-            "CRITICAL: Must include EXACTLY 6 challenges (3 easy, 2 medium, 1 hard) adapted to user feedback."
-        ),
-        agent=agent,
-        async_execution=False,
-        output_json=FeedbackAwarePlannerOutput,
-    )
-
-# # Task 2
-# # -----------------------------
-def create_daily_tasks_generation_task(agent, user_data, carbon_results, benchmark_results, completed_tasks):
-    """Creates task for generating new daily tasks when user completes 3 out of 5 tasks"""
-    
-    return Task(
-        description=(
-            "As a Personal Sustainability Planner, the user has completed 3 out of 5 tasks and earned new daily challenges! "
-            "Generate 3 new DAILY tasks that they can do repeatedly to maintain momentum.\n\n"
-            
-            "CRITICAL: Return ONLY valid JSON. No markdown, no text, no explanations.\n\n"
-            
-            f"USER DATA:\n{user_data}\n\n"
-            f"CARBON RESULTS:\n{carbon_results}\n\n"
-            f"BENCHMARKS:\n{benchmark_results}\n\n"
-            f"COMPLETED TASKS:\n{completed_tasks}\n\n"
-            
-            "Generate 3 NEW daily sustainability tasks:\n"
-            "- All must be DAILY tasks (repeatable actions)\n"
-            "- Different from previously completed tasks\n"
-            "- Focus on building sustainable daily habits\n"
-            "- Should be quick and easy to integrate into daily routine\n"
-            "- Estimate small but consistent CO2 savings\n\n"
-            
-            "DAILY TASK EXAMPLES:\n"
-            "- Use reusable water bottle today\n"
-            "- Turn off lights when leaving room\n"
-            "- Take stairs instead of elevator\n"
-            "- Unplug electronics after use\n"
-            "- Use cold water for washing\n\n"
-            
-            "Keep all text fields concise (max 80 characters each).\n"
-            "Return pure JSON starting with { and ending with }."
-        ),
-        expected_output=(
-            "Return ONLY a simple JSON object for daily tasks:\n"
-            "{\n"
-            '  "congratulations_message": "Celebration message for completing 3 tasks",\n'
-            '  "daily_focus": "Theme for these daily habits",\n'
-            '  "new_daily_tasks": [\n'
-            '    {\n'
-            '      "id": "daily_task_unique_id",\n'
-            '      "title": "Short daily action title",\n'
-            '      "action": "Simple daily action to take",\n'
-            '      "why": "Why this daily habit matters",\n'
-            '      "steps": ["Quick step 1", "Quick step 2"],\n'
-            '      "co2_savings": 2,\n'
-            '      "difficulty": "easy",\n'
-            '      "task_type": "daily",\n'
-            '      "frequency": "daily",\n'
-            '      "completed": false\n'
-            '    }\n'
-            '  ],\n'
-            '  "motivation": "Encouragement for daily habit building"\n'
-            "}\n"
-            "CRITICAL: Must include exactly 3 daily tasks. All text under 80 characters."
-        ),
-        agent=agent,
-        async_execution=False,
-        output_json=DailyTasksOutput,
-    )
-
-# # Task 3
-# # -----------------------------
-def create_update_planning_task(agent, user_data, carbon_results, benchmark_results, user_update_text):
-    """Creates an adaptive planning task based on user's latest update from dashboard"""
-    
-    return Task(
-        description=(
-            "As a Personal Sustainability Planner, analyze user's latest update and adapt weekly plan accordingly. "
-            "Use their feedback to improve future recommendations and adjust current challenges.\n"
-            "IMPORTANT: You must respond with ONLY a valid JSON object. No text before or after.\n\n"
+            "EXAMPLES:\n"
+            f"Easy: {[c['description'][:40] + '...' for c in challenges_data['easy'][:2]]}\n"
+            f"Medium: {[c['description'][:40] + '...' for c in challenges_data['medium'][:1]]}\n"
+            f"Hard: {[c['description'][:40] + '...' for c in challenges_data['hard'][:1]]}\n\n"
             
             "CRITICAL REQUIREMENTS:\n"
-            "- MUST create exactly 6 challenges (never more, never less)\n"
-            "- MUST include 3 easy + 2 medium + 1 hard challenge\n"
-            "- NEVER delete incomplete challenges unless user specifically requests it\n"
-            "- Each challenge must be unique and actionable\n\n"
-            
-            "USER'S LATEST UPDATE:\n"
-            f'"{user_update_text}"\n\n'
-            
-            "EXISTING USER CONTEXT:\n"
-            f"USER PROFILE:\n{user_data}\n\n"
-            f"CARBON ANALYSIS:\n{carbon_results}\n\n"
-            f"SUSTAINABILITY SCORES:\n{benchmark_results}\n\n"
-            
-            "ADAPTIVE PLANNING TASKS:\n"
-            "1. ANALYZE UPDATE: Understand user's progress, challenges, or new circumstances\n"
-            "2. ADJUST STRATEGY: Modify approach based on their feedback or new information\n"
-            "3. GENERATE UPDATED PLAN: Create exactly 6 new challenges considering their update\n"
-            "4. INCORPORATE LEARNINGS: Use their feedback to personalize future recommendations\n"
-            "5. MAINTAIN MOMENTUM: Keep them motivated while addressing their concerns\n\n"
-            
-            "CHALLENGE REQUIREMENTS:\n"
-            "- Create exactly 6 challenges total (NEVER MORE, NEVER LESS)\n"
-            "- 3 Easy challenges (simple daily habits, 5-10 minutes)\n"
-            "- 2 Medium challenges (weekly commitments, 30-60 minutes)\n"
-            "- 1 Hard challenge (significant change, 2+ hours or major lifestyle shift)\n"
-            "- Adapt based on user's update and feedback\n\n"
-            
-            "RESPONSE STRATEGY:\n"
-            "- If they report completion: Celebrate success and escalate difficulty\n"
-            "- If they report challenges: Simplify actions and address barriers\n"
-            "- If they share new info: Incorporate into planning strategy\n"
-            "- If they seem discouraged: Focus on easier wins and motivation\n"
-            "- If they're motivated: Introduce more ambitious challenges\n\n"
-            
-            "YOUR RESPONSE: Pure JSON starting with { and ending with }"
+            "• Generate EXACTLY 4 challenges - NO MORE, NO LESS\n"
+            "• Structure: 2 Easy + 1 Medium + 1 Hard\n"
+            "• Adapt based on user feedback\n"
+            "• Keep descriptions under 50 words each\n"
+            "• COMPLETE ALL 4 CHALLENGES - DO NOT STOP EARLY\n"
         ),
         expected_output=(
-            "A valid JSON object with exactly these fields:\n"
-            "{\n"
-            '  "update_analysis": "Summary of what user shared and implications",\n'
-            '  "planning_adjustments": "How the plan was modified based on their update",\n'
-            '  "week_focus": "Adapted theme for this week based on user feedback",\n'
-            '  "challenges": [\n'
-            '    {\n'
-            '      "id": "challenge_1",\n'
-            '      "title": "Catchy, actionable title",\n'
-            '      "description": "Specific action adapted to user feedback",\n'
-            '      "difficulty": "easy",\n'
-            '      "category": "diet/transport/energy/waste/consumption",\n'
-            '      "steps": ["Step 1", "Step 2", "Step 3"],\n'
-            '      "co2_savings_kg": 2.5,\n'
-            '      "time_required": "5-10 minutes daily",\n'
-            '      "deadline": "Daily this week",\n'
-            '      "success_metrics": "How to measure completion",\n'
-            '      "motivation": "Why this matters considering their update",\n'
-            '      "completed": false\n'
-            '    }\n'
-            '  ],\n'
-            '  "total_potential_savings": 15.2,\n'
-            '  "motivation_message": "Personalized encouragement addressing their update",\n'
-            '  "future_planning_notes": "Insights to remember for next planning"\n'
-            "}\n"
-            "CRITICAL: Create exactly 6 challenges (3 easy, 2 medium, 1 hard). No text outside JSON."
+            "WEEK FOCUS: [Theme adapted to feedback]\n"
+            "PRIORITY AREA: [Area from feedback and analysis]\n\n"
+            
+            "CHALLENGES:\n"
+            "1. EASY - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [diet/transport/energy/waste/consumption]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "2. EASY - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "3. MEDIUM - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "4. HARD - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "TOTAL SAVINGS: [X.X kg CO2]\n"
+            "MOTIVATION MESSAGE: [Encouraging message]\n\n"
+            "IMPORTANT: Complete ALL 4 challenges before finishing."
         ),
         agent=agent,
         async_execution=False,
-        output_json=UpdatePlannerOutput,
+    )
+
+# # Task 3 - REMOVED: Daily task generation no longer needed
+# # (Using only weekly planning with easy/medium/hard challenges)
+
+# # Task 4
+# # -----------------------------
+def create_update_planning_task(agent, user_complete_data, user_update_text):
+    """Creates an adaptive planning task based on user's latest update from dashboard"""
+    
+    # Load available challenges from metadata
+    challenges_data = load_challenges_metadata()
+    
+    return Task(
+        description=(
+            "Create EXACTLY 4 new challenges based on user feedback.\n\n"
+            
+            f"USER UPDATE:\n{user_update_text[:200]}\n\n"
+            
+            f"USER DATA:\n{str(user_complete_data)[:400]}\n\n"
+            
+            "EXAMPLES:\n"
+            f"Easy: {[c['description'][:35] + '...' for c in challenges_data['easy'][:2]]}\n"
+            f"Medium: {[c['description'][:35] + '...' for c in challenges_data['medium'][:1]]}\n"
+            f"Hard: {[c['description'][:35] + '...' for c in challenges_data['hard'][:1]]}\n\n"
+            
+            "CRITICAL REQUIREMENTS:\n"
+            "• Generate EXACTLY 4 challenges - NO MORE, NO LESS\n"
+            "• Structure: 2 Easy + 1 Medium + 1 Hard\n"
+            "• Adapt based on their feedback\n"
+            "• Keep descriptions under 50 words each\n"
+            "• COMPLETE ALL 4 CHALLENGES - DO NOT STOP EARLY\n"
+        ),
+        expected_output=(
+            "UPDATE ANALYSIS: [Summary of user feedback]\n"
+            "WEEK FOCUS: [Adapted theme based on feedback]\n"
+            "PRIORITY AREA: [Top area based on update]\n\n"
+            
+            "CHALLENGES:\n"
+            "1. EASY - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [diet/transport/energy/waste/consumption]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "2. EASY - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "3. MEDIUM - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "4. HARD - [Title]\n"
+            "   Description: [Action in 1 sentence]\n"
+            "   Category: [category]\n"
+            "   CO2 Savings: [X.X kg]\n"
+            "   Time: [X minutes/hours]\n"
+            "   Motivation: [Brief benefit]\n\n"
+            
+            "TOTAL SAVINGS: [X.X kg CO2]\n"
+            "MOTIVATION MESSAGE: [Encouraging message]\n"
+            "PLANNING NOTES: [Insights for future]\n\n"
+            "IMPORTANT: Complete ALL 4 challenges before finishing."
+        ),
+        agent=agent,
+        async_execution=False,
     )

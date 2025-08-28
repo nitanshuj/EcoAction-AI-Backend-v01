@@ -436,6 +436,41 @@ def get_user_profile_data(user_id: str):
         st.error(f"Error fetching user profile data: {str(e)}")
         return None
 
+def get_complete_user_data_with_score(user_id: str):
+    """
+    Get complete user data including profile and scores from the users table.
+    This function retrieves the combined user_profile and carbon_analysis data
+    from the 'complete_profile_w_scores' column.
+    
+    Args:
+        user_id (str): The user's UUID
+        
+    Returns:
+        dict: Complete user data with scores or None if not found
+    """
+    try:
+        supabase = get_supabase()
+        
+        response = supabase.table('users')\
+            .select('complete_profile_w_scores')\
+            .eq('id', user_id)\
+            .execute()
+        
+        if response.data and len(response.data) > 0:
+            complete_data = response.data[0].get('complete_profile_w_scores')
+            if complete_data:
+                return complete_data
+            else:
+                print(f"⚠️ No complete_profile_w_scores found for user {user_id}")
+                return None
+        else:
+            print(f"⚠️ No user found with id {user_id}")
+            return None
+        
+    except Exception as e:
+        print(f"❌ Error fetching complete user data with scores: {str(e)}")
+        return None
+
 def create_agent_session(user_id: str, agent_type: str, initial_prompt: str) -> str:
     """
     Create a new agent session.
@@ -694,16 +729,12 @@ def get_agent_results(user_id: str):
             .eq('user_id', user_id)\
             .execute()
         
-        # Get current week's plan from weekly_plans table
-        from datetime import date, timedelta
-        today = date.today()
-        days_since_monday = today.weekday()
-        week_start = today - timedelta(days=days_since_monday)
-        
+        # Get current week's plan from weekly_plans table - get latest plan
         plans_response = supabase.table('weekly_plans')\
             .select('*')\
             .eq('user_id', user_id)\
-            .eq('week_of', week_start.isoformat())\
+            .order('created_at', desc=True)\
+            .limit(1)\
             .execute()
         
         # Combine results
@@ -753,16 +784,11 @@ def check_agents_status(user_id: str):
         
         analyst_completed = len(scores_response.data) > 0
         
-        # Check if current week's plan exists (planner completed)
-        from datetime import date, timedelta
-        today = date.today()
-        days_since_monday = today.weekday()
-        week_start = today - timedelta(days=days_since_monday)
-        
+        # Check if any weekly plan exists (planner completed)
         plans_response = supabase.table('weekly_plans')\
             .select('id')\
             .eq('user_id', user_id)\
-            .eq('week_of', week_start.isoformat())\
+            .limit(1)\
             .execute()
         
         planner_completed = len(plans_response.data) > 0
@@ -776,6 +802,47 @@ def check_agents_status(user_id: str):
         st.error(f"Error checking agents status: {str(e)}")
         return {'analyst_completed': False, 'planner_completed': False}
 
+
+def debug_weekly_plans(user_id: str):
+    """
+    Debug function to show what's in the weekly_plans table for a user.
+    """
+    try:
+        supabase = get_supabase()
+        
+        response = supabase.table('weekly_plans')\
+            .select('*')\
+            .eq('user_id', user_id)\
+            .order('created_at', desc=True)\
+            .execute()
+        
+        return response.data
+        
+    except Exception as e:
+        print(f"Error debugging weekly plans: {str(e)}")
+        return []
+
+def debug_user_actions(user_id: str, weekly_plan_id: str = None):
+    """
+    Debug function to show what's in the user_actions table for a user.
+    """
+    try:
+        supabase = get_supabase()
+        
+        query = supabase.table('user_actions')\
+            .select('*')\
+            .eq('user_id', user_id)
+        
+        if weekly_plan_id:
+            query = query.eq('weekly_plan_id', weekly_plan_id)
+            
+        response = query.order('created_at', desc=True).execute()
+        
+        return response.data
+        
+    except Exception as e:
+        print(f"Error debugging user actions: {str(e)}")
+        return []
 
 def save_weekly_plan_results(user_id: str, session_id: str, plan_data: dict) -> bool:
     """
@@ -878,10 +945,10 @@ def save_task_completion(user_id: str, weekly_plan_id: str, task_id: str, task_t
     
     Args:
         user_id (str): The user's UUID
-        weekly_plan_id (str): The weekly plan UUID
+        weekly_plan_id (str): The weekly plan UUID (from weekly_plans.id)
         task_id (str): Unique task identifier (maps to suggestion_id)
         task_title (str): Task title/description (stored in notes)
-        task_type (str): 'daily' or 'long_term' (stored in notes)
+        task_type (str): 'weekly' or other type (stored in notes)
         
     Returns:
         bool: True if successful, False otherwise
@@ -889,9 +956,23 @@ def save_task_completion(user_id: str, weekly_plan_id: str, task_id: str, task_t
     try:
         supabase = get_supabase()
         
-        response = supabase.table('user_actions').upsert({
+        # Check if this task completion already exists
+        existing_response = supabase.table('user_actions')\
+            .select('id')\
+            .eq('user_id', user_id)\
+            .eq('weekly_plan_id', str(weekly_plan_id))\
+            .eq('suggestion_id', task_id)\
+            .eq('status', 'completed')\
+            .execute()
+        
+        # If it already exists, return True (already completed)
+        if existing_response.data:
+            return True
+        
+        # Insert new completion record
+        response = supabase.table('user_actions').insert({
             'user_id': user_id,
-            'weekly_plan_id': weekly_plan_id,
+            'weekly_plan_id': str(weekly_plan_id),  # Ensure it's a string
             'suggestion_id': task_id,
             'status': 'completed',
             'notes': f"{task_title} ({task_type})"

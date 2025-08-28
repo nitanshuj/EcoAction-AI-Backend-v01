@@ -32,6 +32,10 @@ Functions:
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
+import json, re,ast
+from typing import Union
+from .utils import parse_text_to_json, load_challenges_metadata
+
 # New simplified models for the restructured output
 class Demographics(BaseModel):
     location: str = Field(..., description="City, Country")
@@ -281,9 +285,7 @@ class UpdatePlannerOutput(BaseModel):
         extra = "forbid"  # Strict validation
         validate_assignment = True
 
-import json
-import re
-from typing import Union
+
 
 def clean_json_string(raw_json: str) -> str:
     """Clean JSON string by removing common formatting issues"""
@@ -295,72 +297,36 @@ def clean_json_string(raw_json: str) -> str:
     raw_json = re.sub(r',\s*}', '}', raw_json)
     raw_json = re.sub(r',\s*]', ']', raw_json)
     
-    # Don't escape newlines if they're already in valid JSON format
-    # Just strip and return
     return raw_json.strip()
 
 def extract_json_from_text(text: str) -> dict:
-    """Extract JSON object from text using multiple strategies"""
-    
-    # Strategy 1: Try direct JSON parsing first
+    """
+    Bulletproof function to extract a JSON object from a string.
+    It handles JSON, Python dict strings, and markdown code blocks.
+    """
+    # 1. Aggressively find a JSON-like object using regex.
+    # This pattern looks for the outermost curly braces.
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if not match:
+        raise ValueError(f"No JSON object found in text. Preview: {text[:200]}...")
+
+    json_str = match.group(0)
+
+    # 2. Try to parse it as standard JSON.
     try:
-        cleaned = clean_json_string(text)
-        return json.loads(cleaned)
+        return json.loads(json_str)
     except json.JSONDecodeError:
-        pass
-    
-    # Strategy 2: Find and extract JSON from markdown code blocks
-    markdown_patterns = [
-        r'```json\s*(\{.*?\})\s*```',  # ```json ... ```
-        r'```\s*(\{.*?\})\s*```',      # ``` ... ```
-    ]
-    
-    for pattern in markdown_patterns:
-        matches = re.findall(pattern, text, re.DOTALL)
-        for match in matches:
-            try:
-                cleaned = clean_json_string(match)
-                return json.loads(cleaned)
-            except json.JSONDecodeError:
-                continue
-    
-    # Strategy 3: Find JSON blocks with nested braces (more aggressive)
-    json_patterns = [
-        r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # Single level nesting
-        r'\{.*?\}',  # Simple greedy match
-    ]
-    
-    # For complex nested JSON, use a different approach
-    brace_count = 0
-    start_idx = -1
-    
-    for i, char in enumerate(text):
-        if char == '{':
-            if brace_count == 0:
-                start_idx = i
-            brace_count += 1
-        elif char == '}':
-            brace_count -= 1
-            if brace_count == 0 and start_idx != -1:
-                # Found complete JSON object
-                json_text = text[start_idx:i+1]
-                try:
-                    cleaned = clean_json_string(json_text)
-                    return json.loads(cleaned)
-                except json.JSONDecodeError:
-                    continue
-    
-    # Fallback to regex patterns if brace counting fails
-    for pattern in json_patterns:
-        matches = re.findall(pattern, text, re.DOTALL)
-        for match in matches:
-            try:
-                cleaned = clean_json_string(match)
-                return json.loads(cleaned)
-            except json.JSONDecodeError:
-                continue
-    
-    raise ValueError(f"Could not extract valid JSON from text. Preview: {text[:200]}...")
+        # 3. If standard parsing fails, it might be a Python dict string.
+        # Safely evaluate it as a Python literal.
+        try:
+            py_dict = ast.literal_eval(json_str)
+            # Convert the Python dict to a JSON-compliant dict before returning
+            return json.loads(json.dumps(py_dict))
+        except (ValueError, SyntaxError, MemoryError) as e:
+            # If all parsing attempts fail, raise the final error.
+            raise ValueError(f"Failed to parse JSON or Python dict from text. Preview: {json_str[:200]}...") from e
+
+# ------------------------------------------------------------------------------------------            
 
 def validate_profiler_output(json_data: Union[dict, str]) -> ProfilerAgentOutput:
     """Validate the profiler agent output using Pydantic"""

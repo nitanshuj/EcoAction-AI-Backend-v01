@@ -1,0 +1,129 @@
+{
+  "narrative_text": "Residing in a compact house in Bristol, UK, this user values sustainability but struggles with motivation and social influences. They drive a hybrid car for daily commutes but often walk for errands. Their diet is mostly vegetarian with rare seafood, and they rarely produce food waste. Mostly diligent with recycling, they wish to further reduce their plastic use. Focused on optimizing energy use and limiting waste, they seek easy new lifestyle upgrades.",
+  "demographics": {
+    "climate": "Temperate Maritime",
+    "location": "Bristol, United Kingdom",
+    "home_type": "House",
+    "ownership": "Own",
+    "household_size": 3
+  },
+  "lifestyle_habits": {
+    "diet": {
+      "type": "Vegetarian with seafood",
+      "food_waste": "Rarely",
+      "meat_frequency": "Once every two months"
+    },
+    "energy_usage": {
+      "ac_usage": "Never",
+      "heating_source": "Natural Gas",
+      "energy_conservation_habits": "Regularly"
+    },
+    "transportation": {
+      "car_type": "Hybrid",
+      "primary_mode": "Car & Walking",
+      "commute_details": "5 miles daily, frequent walks, carpooling on weekends"
+    }
+  },
+  "consumption_patterns": {
+    "plastic_usage": "Frequently",
+    "recycling_habit": "Often",
+    "shopping_frequency": "Weekly"
+  },
+  "psychographic_insights": {
+    "goals": [
+      "Reducing single-use plastics",
+      "Cutting energy bills"
+    ],
+    "barriers": [
+      "Low motivation",
+      "Peer influence"
+    ],
+    "motivations": [
+      "Setting a good example for kids"
+    ]
+  },
+  "key_levers": [
+    "Transition to reusable bags and bottles consistently",
+    "Switch home lights to LED",
+    "Increase carpooling frequency",
+    "Install a smart thermostat",
+    "Compost more of their food waste"
+  ],
+  "total_carbon_footprint_kg": 2200.0,
+  "total_carbon_footprint_tonnes": 2.2,
+  "category_breakdown": {
+    "diet_kg": 2.7,
+    "other_kg": 5.0,
+    "shopping_kg": 35.0,
+    "home_energy_kg": 400.0,
+    "transportation_kg": 770.0,
+    "digital_footprint_kg": 0.34
+  },
+  "sustainability_score": 7.2,
+  "score_category": "good",
+  "regional_comparison": {
+    "user_location": "Bristol, United Kingdom",
+    "local_average_kg": 2650.0,
+    "comparison_status": "below",
+    "percentage_difference": 17.0
+  },
+  "key_lever_validations": [
+    {
+      "lever": "Transition to reusable bags and bottles consistently",
+      "validated": true,
+      "impact_category": "Shopping",
+      "validation_reason": "Minimizing disposables shrinks plastic-related emissions and landfill waste.",
+      "potential_reduction_kg": 9.0
+    },
+    {
+      "lever": "Switch home lights to LED",
+      "validated": true,
+      "impact_category": "Home Energy",
+      "validation_reason": "LED bulbs use less power, reducing electricity-related emissions.",
+      "potential_reduction_kg": 14.0
+    },
+    {
+      "lever": "Increase carpooling frequency",
+      "validated": false,
+      "impact_category": "Transportation",
+      "validation_reason": "Already a habitual carpooler with limited further reduction potential.",
+      "potential_reduction_kg": 0.0
+    }
+  ],
+  "psychographic_insights_analyst": [
+    {
+      "insight_text": "Switching to reusable products aligns directly with your goal of reducing single-use plastics.",
+      "addresses_barrier": "Low motivation",
+      "related_motivation": "Setting a good example for kids",
+      "actionable_next_step": "Try a 30-day plastic-free challenge with your family."
+    },
+    {
+      "insight_text": "LED lighting upgrades can quickly cut your energy costs with minimal effort.",
+      "addresses_barrier": "Peer influence",
+      "related_motivation": "Cutting energy bills",
+      "actionable_next_step": "Organize a neighborhood LED swap or group buy."
+    }
+  ],
+  "top_impact_categories": [
+    "Home Energy",
+    "Transportation",
+    "Shopping"
+  ],
+  "priority_reduction_areas": [
+    "Home Energy",
+    "Plastic Usage",
+    "Food Waste"
+  ],
+  "fun_comparison_facts": [
+    "Your emissions are equivalent to powering a fridge for 5 years.",
+    "Cutting your footprint by 10% could offset one return flight to Paris."
+  ],
+  "calculation_method": "Data compiled from user survey, smart meter readings, and local statistics.",
+  "data_confidence": "high",
+  "profile_created_at": "2025-08-25T18:54:13.209139",
+  "profile_version": "1.0",
+  "agents_used": [
+    "profiler",
+    "analyst"
+  ]
+}

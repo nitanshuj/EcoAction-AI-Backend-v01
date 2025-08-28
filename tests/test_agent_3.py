@@ -1,7 +1,10 @@
 # tests/test_agent_3.py
-"""Test script for Agent 3 (Planner) functionality"""
+"""
+Agent 3 (Planner) Tests - Simplified
+Focus only on Agent 3 planning workflows with unique JSON parsing functions.
+"""
 
-import sys, os, json, re, warnings
+import sys, os, json, warnings
 warnings.filterwarnings("ignore")
 
 # Add the parent directory to Python path so we can import project modules
@@ -10,127 +13,224 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agent.crew import (
     run_planner_workflow,
     run_feedback_aware_planning_workflow,
-    run_daily_tasks_generation_workflow,
     run_update_planning_workflow
 )
-
-# ---------------------------------------------
-# --- Helper Functions ---
-# ---------------------------------------------
-
-def _parse_and_display_plan(results, test_name):
-    """Helper function to parse and display the planner agent's output"""
-    if not results:
-        print("❌ No results returned from workflow")
-        return
-
-    print(f"✅ {test_name} completed successfully!")
-    print(f"📋 Results type: {type(results)}")
-
-    # Check if results is already a dictionary (new JSON output)
-    if isinstance(results, dict):
-        plan_data = results
-        print("✅ Agent 3 returned structured JSON data")
-    else:
-        # Try to parse as JSON from string (fallback)
-        raw_output = results.raw if hasattr(results, 'raw') else str(results)
-        
-        try:
-            json_match = re.search(r'\{.*\}', raw_output, re.DOTALL)
-            if not json_match:
-                print("❌ No JSON found in the output.")
-                print(f"📄 Raw Output:\n{raw_output}")
-                return
-
-            plan_data = json.loads(json_match.group(0))
-            print("✅ Successfully parsed JSON from raw output")
-            
-        except (json.JSONDecodeError, AssertionError) as e:
-            print(f"❌ Test validation failed: {e}")
-            print(f"📄 Raw Output:\n{raw_output}")
-            return
-    
-    # Display the parsed plan
-    print("\n" + "="*50)
-    print(f"🎯 PARSED AGENT 3 PLAN: {test_name}")
-    print("="*50)
-    print(f"📅 Week Focus: {plan_data.get('week_focus', 'N/A')}")
-    
-    challenges = plan_data.get('challenges', [])
-    print(f"🏆 CHALLENGES ({len(challenges)} total):")
-    
-    # Validate challenge structure if we have challenges
-    if challenges:
-        try:
-            assert len(challenges) == 6, f"Should return exactly 6 challenges, got {len(challenges)}"
-            
-            easy = [c for c in challenges if c.get('difficulty', '').lower() == 'easy']
-            medium = [c for c in challenges if c.get('difficulty', '').lower() == 'medium']
-            hard = [c for c in challenges if c.get('difficulty', '').lower() == 'hard']
-            
-            assert len(easy) == 3, f"Should have 3 easy challenges, got {len(easy)}"
-            assert len(medium) == 2, f"Should have 2 medium challenges, got {len(medium)}"
-            assert len(hard) == 1, f"Should have 1 hard challenge, got {len(hard)}"
-
-            for i, challenge in enumerate(challenges, 1):
-                print(f"  {i}. {challenge.get('title', 'N/A')} ({challenge.get('difficulty', 'N/A')})")
-                
-            print(f"💰 Total Potential Savings: {plan_data.get('total_potential_savings', 'N/A')} kg CO2")
-            print(f"💡 Motivation: {plan_data.get('motivation_message', 'N/A')}")
-            
-        except AssertionError as e:
-            print(f"⚠️ Challenge validation: {e}")
-            # Still display what we got
-            for i, challenge in enumerate(challenges, 1):
-                print(f"  {i}. {challenge.get('title', 'N/A')} ({challenge.get('difficulty', 'N/A')})")
-    else:
-        print("⚠️ No challenges found in plan data")
-        print(f"� Total Potential Savings: {plan_data.get('total_potential_savings', 'N/A')} kg CO2")
-        print(f"💡 Motivation: {plan_data.get('motivation_message', 'N/A')}")
+from agent.utils import parse_agent3_text_output
 
 
-# --- Test Functions ---
+# ============================================================================
+# Agent 3 (Task: Initial generation)
+# Output: json file (Use only utils functions for json parsing (made uniquely for each task))
+# ============================================================================
 
-def test_basic_planner_workflow():
-    """Test the basic planner workflow (without feedback)"""
-    print("🧪 Testing Basic Planner Workflow (Agent 3)...")
-    
-    # NOTE: Using a hardcoded user ID. For more robust testing, consider
-    # creating a test user or mocking the database calls.
-    test_user_id = "a14848d3-3d90-4f12-8034-52c2e9a6d4d9"
-    
+def test_initial_generation(test_data):
+    """Test Agent 3 initial challenge generation"""
+    print("=" * 80)
+    print("AGENT 3 (TASK: INITIAL GENERATION)")
+    print("=" * 80)
+
     try:
-        print(f"🔄 Running basic planner workflow for user: {test_user_id}")
-        results = run_planner_workflow(test_user_id)
-        _parse_and_display_plan(results, "Basic Planner Workflow")
-        
-    except Exception as e:
-        print(f"❌ Error in basic planner workflow: {e}")
+        print("🔄 Running initial challenge generation...")
+        # Run the workflow
+        results = run_planner_workflow(user_id="test-user-123", test_data=test_data)
 
-def test_feedback_aware_workflow():
-    """Test the feedback-aware planning workflow"""
-    print("\n" + "-"*60)
-    print("🧪 Testing Feedback-Aware Planning Workflow...")
-    
-    test_user_id = "a14848d3-3d90-4f12-8034-52c2e9a6d4d9"
-    test_feedback = "I need easier, home-based challenges that also help me save money."
-    
+        if not results:
+            print("❌ No results from initial generation")
+            return False
+
+        # Parse using utils function (unique for this task)
+        if isinstance(results, str):
+            parsed_data = parse_agent3_text_output(results, task_type="initial")
+        else:
+            print("Could not parse results and conver to JSON!!")
+            parsed_data = results
+
+        print("✅ Initial generation completed successfully!")
+        print(f"📋 Generated {len(parsed_data.get('challenges', []))} challenges")
+
+        # Display results
+        print("\n" + "=" * 50)
+        print("Raw Output: Task 1-Initial Challenge Generation)")
+        print("=" * 50)
+        print(json.dumps(parsed_data, indent=2))
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Error in initial generation: {e}")
+        return False
+
+
+# ============================================================================
+# Agent 3 (Task: feedback based generation)
+# Input: A feedback (hard-coded)
+# Output: json_file with new challenges. Use only utils functions for json parsing (made uniquely for each task)
+# ============================================================================
+
+def test_feedback_based_generation(test_data):
+    """Test Agent 3 feedback-based challenge generation"""
+    print("=" * 80)
+    print("AGENT 3 (TASK: FEEDBACK BASED GENERATION)")
+    print("=" * 80)
+
+    # Hard-coded feedback input
+    feedback_text = "I found the transportation challenges too difficult since I live far from work. Can you suggest more home-based activities?"
+
+    print(f"📝 Input Feedback: {feedback_text}")
+
     try:
-        print(f"🔄 Running feedback-aware workflow for user: {test_user_id}")
-        results = run_feedback_aware_planning_workflow(test_user_id, test_feedback)
-        _parse_and_display_plan(results, "Feedback-Aware Workflow")
-        
-    except Exception as e:
-        print(f"❌ Error in feedback-aware planning workflow: {e}")
+        print("🔄 Running feedback-based generation...")
 
-# --- Main Execution ---
+    # Run the workflow with feedback (test_data provided by caller)
+        results = run_feedback_aware_planning_workflow(
+            user_id="test-user-123",
+            raw_feedback=feedback_text,
+            test_data=test_data
+        )
+
+        if not results:
+            print("❌ No results from feedback-based generation")
+            return False
+
+        # Parse using utils function (unique for this task)
+        if isinstance(results, str):
+            parsed_data = parse_agent3_text_output(results, task_type="feedback")
+        else:
+            parsed_data = results
+
+        print("✅ Feedback-based generation completed successfully!")
+        print(f"📋 Generated {len(parsed_data.get('challenges', []))} challenges")
+
+        # Display results
+        print("\n" + "=" * 50)
+        print("Raw Output: Task 2-Feedback Based Generation")
+        print("=" * 50)
+        print(json.dumps(parsed_data, indent=2))
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Error in feedback-based generation: {e}")
+        return False
+
+
+# ============================================================================
+# Agent 3 (Task: Updating the tasks)
+# Just click a button, and the tasks are updated.
+# Output: json_file with new tasks (Use only utils functions for json parsing (made uniquely for each task))
+# ============================================================================
+
+def test_updating_tasks(test_data):
+    """Test Agent 3 task updating"""
+    print("=" * 80)
+    print("AGENT 3 (TASK: UPDATING THE TASKS)")
+    print("=" * 80)
+
+    # Simulate button click with update text
+    update_text = "I completed 4 out of 6 challenges this week! The recycling one was easy but the public transport challenge was hard because of bad weather."
+
+    print(f"🔘 Button clicked with update: {update_text}")
+
+    try:
+        print("🔄 Running task update...")
+
+    # Run the workflow with update (test_data provided by caller)
+        results = run_update_planning_workflow(
+            user_id="test-user-123",
+            user_update_text=update_text,
+            test_data=test_data
+        )
+
+        if not results:
+            print("❌ No results from task update")
+            return False
+
+        # Parse using utils function (unique for this task)
+        if isinstance(results, str):
+            parsed_data = parse_agent3_text_output(results, task_type="update")
+        else:
+            parsed_data = results
+
+        print("✅ Task update completed successfully!")
+        print(f"📋 Generated {len(parsed_data.get('challenges', []))} new challenges")
+
+        # Display results
+        print("\n" + "=" * 50)
+        print("Raw Output: Task 3-Updating the tasks")
+        print("=" * 50)
+        print(json.dumps(parsed_data, indent=2))
+        print("=" * 50)
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Error in task update: {e}")
+        return False
+
+
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
+def run_all_tests(test_data):
+    """Run all Agent 3 tests"""
+    print("=" * 80)
+    print("AGENT 3 TEST SUITE - SIMPLIFIED")
+    print("=" * 80)
+
+    test_results = []
+
+    # Run all three tests (pass test_data through)
+    test_results.append(("Initial Generation", test_initial_generation(test_data)))
+    test_results.append(("Feedback-Based Generation", test_feedback_based_generation(test_data)))
+    test_results.append(("Task Updating", test_updating_tasks(test_data)))
+
+    # Summary
+    print("\n" + "=" * 80)
+    print("TEST SUMMARY")
+    print("=" * 80)
+
+    passed_tests = 0
+    total_tests = len(test_results)
+
+    for test_name, result in test_results:
+        status = "✅ PASSED" if result else "❌ FAILED"
+        print(f"{status}: {test_name}")
+        if result:
+            passed_tests += 1
+
+    print(f"\nOVERALL RESULT: {passed_tests}/{total_tests} tests passed")
+
+    if passed_tests == total_tests:
+        print("🎉 ALL TESTS PASSED! Agent 3 is working correctly.")
+    elif passed_tests > 0:
+        print("⚠️ SOME TESTS FAILED. Review the failed tests above.")
+    else:
+        print("❌ ALL TESTS FAILED. Agent 3 needs debugging.")
+
+    return passed_tests == total_tests
+
 
 if __name__ == "__main__":
-    print("🚀 EcoAction AI - Agent 3 (Planner) Test Suite")
-    print("="*60)
-    
-    test_basic_planner_workflow()
-    test_feedback_aware_workflow()
-    
-    print("\n" + "="*60)
-    print("✅ Agent 3 tests completed!")
+    # Run all tests
+    print("Running Agent 3 simplified test suite...")
+    print("This will test all 3 Agent 3 workflows with real data from test-file-3.json")
+    print()
+
+    # Load the test JSON once and pass it into each test.
+    # Assumption: the test JSON is located at experimentation/test-json-3-enhanced-profile.json
+    test_file_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "tests",
+        "test-file-3.json",
+    )
+
+    if not os.path.exists(test_file_path):
+        print(f"Test file not found: {test_file_path}")
+        print("Please provide the correct path to your test JSON file.")
+        sys.exit(1)
+
+    with open(test_file_path, "r", encoding="utf-8") as fh:
+        test_data = json.load(fh)
+
+    run_all_tests(test_data)

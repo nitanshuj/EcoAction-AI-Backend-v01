@@ -16,6 +16,16 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+from chromadb.config import Settings
+import chromadb
+
+client = chromadb.Client(
+    Settings(
+      chroma_db_impl="duckdb+parquet",
+      persist_directory=".chromadb"  # or wherever you want to persist
+    )
+)
+
 def main():
     """Main application entry point with front page or routing"""
     

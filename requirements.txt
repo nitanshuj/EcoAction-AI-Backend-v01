@@ -35,4 +35,4 @@ langchain-community
 langchain-google-genai
 altair
 # pysqlite3-binary>=0.4.7; sys_platform != "win32"
-chromadb
+# chromadb

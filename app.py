@@ -1,6 +1,16 @@
 # app.py
-import streamlit as st
+# =================================
 import sys
+
+try:
+    __import__('pysqlite3')
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass # Will fail on Windows, which is fine
+# --- END FIX ---
+
+
+import streamlit as st
 import os
 
 # Add the current directory to the path for imports
@@ -16,15 +26,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-from chromadb.config import Settings
-import chromadb
+# from chromadb.config import Settings
+# import chromadb
 
-client = chromadb.Client(
-    Settings(
-      chroma_db_impl="duckdb+parquet",
-      persist_directory=".chromadb"  # or wherever you want to persist
-    )
-)
+# client = chromadb.Client(
+#     Settings(
+#       chroma_db_impl="duckdb+parquet",
+#       persist_directory=".chromadb"  # or wherever you want to persist
+#     )
+# )
 
 def main():
     """Main application entry point with front page or routing"""

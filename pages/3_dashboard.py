@@ -207,15 +207,12 @@ if user:
         # User info and logout
         # st.markdown(f"**Welcome, {display_name}!**")
         # st.markdown(f"📧 {user.email}")
-        
+        from data_model.auth import logout
         # Logout button
         if st.button("🚪 Logout", type="primary", use_container_width=True):
+            logout()
             # Clear the session state for authentication
-            if 'authenticated' in st.session_state:
-                del st.session_state['authenticated']
-            if 'user' in st.session_state:
-                del st.session_state['user']
-            
+            st.session_state.clear()
             st.success("✅ Successfully logged out!")
             st.rerun()
     

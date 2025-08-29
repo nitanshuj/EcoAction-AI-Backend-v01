@@ -2,12 +2,12 @@
 # =================================
 import sys
 
-try:
-    __import__('pysqlite3')
-    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-except ImportError:
-    pass # Will fail on Windows, which is fine
-# --- END FIX ---
+# try:
+#     __import__('pysqlite3')
+#     sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# except ImportError:
+#     pass # Will fail on Windows, which is fine
+# # --- END FIX ---
 
 
 import streamlit as st

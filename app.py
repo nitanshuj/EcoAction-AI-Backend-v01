@@ -3,24 +3,24 @@
 import streamlit as st
 import sys
 import os
-import chromadb
-from chromadb.config import Settings
+# import chromadb
+# from chromadb.config import Settings
 
-# --- CHROMA DB FIX FOR STREAMLIT CLOUD ---
-# This MUST be the first major operation of your app.
-# It initializes Chroma with a compatible backend before any other
-# part of your app (or crewai) can import it.
-try:
-    client = chromadb.Client(
-        Settings(
-            chroma_db_impl="duckdb+parquet",
-            # This will create the database in a temporary directory
-            persist_directory=".chromadb"
-        )
-    )
-except Exception as e:
-    st.error(f"Failed to initialize ChromaDB: {e}")
-# --- END FIX ---
+# # --- CHROMA DB FIX FOR STREAMLIT CLOUD ---
+# # This MUST be the first major operation of your app.
+# # It initializes Chroma with a compatible backend before any other
+# # part of your app (or crewai) can import it.
+# try:
+#     client = chromadb.Client(
+#         Settings(
+#             chroma_db_impl="duckdb+parquet",
+#             # This will create the database in a temporary directory
+#             persist_directory=".chromadb"
+#         )
+#     )
+# except Exception as e:
+#     st.error(f"Failed to initialize ChromaDB: {e}")
+# # --- END FIX ---
 
 
 # Add the current directory to the path for imports

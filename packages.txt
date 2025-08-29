@@ -1,3 +1,0 @@
-# In packages.txt
-gcc
-g++

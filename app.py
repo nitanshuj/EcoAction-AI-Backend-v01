@@ -1,6 +1,8 @@
 # app.py
 # =================================
 import sys
+import streamlit as st
+import os
 
 # try:
 #     __import__('pysqlite3')
@@ -9,9 +11,22 @@ import sys
 #     pass # Will fail on Windows, which is fine
 # # --- END FIX ---
 
+import chromadb
+from chromadb.config import Settings
 
-import streamlit as st
-import os
+# --- CHROMA DB FIX FOR STREAMLIT CLOUD ---
+# This client configuration will create the ChromaDB database in a temporary
+# directory that is available on Streamlit Cloud.
+client = chromadb.Client(
+    Settings(
+        chroma_db_impl="duckdb+parquet",
+        persist_directory=".chromadb"  # This will create a temporary directory
+    )
+)
+# --- END FIX ---
+
+
+
 
 # Add the current directory to the path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

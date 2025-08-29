@@ -1,31 +1,26 @@
 # app.py
 # =================================
-import sys
 import streamlit as st
+import sys
 import os
-
-# try:
-#     __import__('pysqlite3')
-#     sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-# except ImportError:
-#     pass # Will fail on Windows, which is fine
-# # --- END FIX ---
-
 import chromadb
 from chromadb.config import Settings
 
 # --- CHROMA DB FIX FOR STREAMLIT CLOUD ---
-# This client configuration will create the ChromaDB database in a temporary
-# directory that is available on Streamlit Cloud.
-client = chromadb.Client(
-    Settings(
-        chroma_db_impl="duckdb+parquet",
-        persist_directory=".chromadb"  # This will create a temporary directory
+# This MUST be the first major operation of your app.
+# It initializes Chroma with a compatible backend before any other
+# part of your app (or crewai) can import it.
+try:
+    client = chromadb.Client(
+        Settings(
+            chroma_db_impl="duckdb+parquet",
+            # This will create the database in a temporary directory
+            persist_directory=".chromadb"
+        )
     )
-)
+except Exception as e:
+    st.error(f"Failed to initialize ChromaDB: {e}")
 # --- END FIX ---
-
-
 
 
 # Add the current directory to the path for imports

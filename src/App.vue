@@ -1,7 +1,7 @@
 <template>
   <div id="app" class="min-h-screen bg-slate-50">
     <Navbar />
-    <main class="flex-1">
+    <main class="transition-all duration-300">
       <RouterView />
     </main>
   </div>

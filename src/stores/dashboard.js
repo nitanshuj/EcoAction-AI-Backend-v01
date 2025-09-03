@@ -9,46 +9,58 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const loading = ref(false)
   const error = ref(null)
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (userId) => {
     loading.value = true
     error.value = null
     
     try {
-      // Fetch user's carbon footprint data
-      const { data: footprintData, error: footprintError } = await supabase
-        .from('carbon_footprint')
+      // Fetch user profile and carbon footprint
+      const { data: profile } = await supabase
+        .from('user_profiles')
         .select('*')
-        .eq('user_id', supabase.auth.user()?.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('user_id', userId)
         .single()
 
-      if (footprintError && footprintError.code !== 'PGRST116') {
-        throw footprintError
+      if (profile) {
+        carbonFootprint.value = profile.carbon_footprint || 0
       }
 
-      carbonFootprint.value = footprintData?.total_emissions || 0
-
       // Fetch active challenges
-      const { data: challengesData, error: challengesError } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('user_id', supabase.auth.user()?.id)
+      const { data: userChallenges } = await supabase
+        .from('user_challenges')
+        .select(`
+          *,
+          challenges (*)
+        `)
+        .eq('user_id', userId)
         .eq('status', 'active')
 
-      if (challengesError) throw challengesError
-      challenges.value = challengesData || []
+      challenges.value = userChallenges || []
 
-      // Fetch recommendations
-      const { data: recommendationsData, error: recommendationsError } = await supabase
-        .from('recommendations')
-        .select('*')
-        .eq('user_id', supabase.auth.user()?.id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      if (recommendationsError) throw recommendationsError
-      recommendations.value = recommendationsData || []
+      // Mock recommendations for now
+      recommendations.value = [
+        {
+          id: 1,
+          title: 'Switch to LED Bulbs',
+          description: 'Replace incandescent bulbs with LED alternatives',
+          impact: 'Save 75% energy on lighting',
+          category: 'energy'
+        },
+        {
+          id: 2,
+          title: 'Use Public Transport',
+          description: 'Take public transport 2 days per week',
+          impact: 'Reduce transport emissions by 30%',
+          category: 'transport'
+        },
+        {
+          id: 3,
+          title: 'Reduce Meat Consumption',
+          description: 'Try plant-based meals 3 times per week',
+          impact: 'Lower food carbon footprint by 20%',
+          category: 'food'
+        }
+      ]
 
     } catch (err) {
       error.value = err.message
@@ -57,52 +69,18 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
-  const updateCarbonFootprint = async (footprintData) => {
-    loading.value = true
-    error.value = null
-    
-    try {
-      const { data, error: updateError } = await supabase
-        .from('carbon_footprint')
-        .upsert({
-          user_id: supabase.auth.user()?.id,
-          ...footprintData,
-          updated_at: new Date().toISOString()
-        })
-
-      if (updateError) throw updateError
-      
-      await fetchDashboardData()
-      return { success: true }
-    } catch (err) {
-      error.value = err.message
-      return { success: false, error: err.message }
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const completeChallenge = async (challengeId) => {
-    loading.value = true
-    
+  const updateCarbonFootprint = async (userId, newFootprint) => {
     try {
       const { error: updateError } = await supabase
-        .from('challenges')
-        .update({ 
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', challengeId)
+        .from('user_profiles')
+        .update({ carbon_footprint: newFootprint })
+        .eq('user_id', userId)
 
       if (updateError) throw updateError
       
-      await fetchDashboardData()
-      return { success: true }
+      carbonFootprint.value = newFootprint
     } catch (err) {
       error.value = err.message
-      return { success: false, error: err.message }
-    } finally {
-      loading.value = false
     }
   }
 
@@ -113,7 +91,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     loading,
     error,
     fetchDashboardData,
-    updateCarbonFootprint,
-    completeChallenge
+    updateCarbonFootprint
   }
 })

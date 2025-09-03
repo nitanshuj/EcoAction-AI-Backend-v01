@@ -58,7 +58,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   const signOut = async () => {
     loading.value = true
-    
     try {
       await supabase.auth.signOut()
       user.value = null
@@ -69,7 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const initAuth = async () => {
+  const initializeAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     user.value = session?.user || null
 
@@ -86,6 +85,6 @@ export const useAuthStore = defineStore('auth', () => {
     signUp,
     signIn,
     signOut,
-    initAuth
+    initializeAuth
   }
 })

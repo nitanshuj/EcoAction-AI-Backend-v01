@@ -1,0 +1,10 @@
+@@ .. @@
+ {
+-  "name": "vue-project",
++  "name": "ecoaction-ai-vue",
+   "version": "0.0.0",
+   "private": true,
++  "description": "AI-powered climate action platform built with Vue.js",
+   "scripts": {
+     "dev": "vite",
+     "build": "vite build",
